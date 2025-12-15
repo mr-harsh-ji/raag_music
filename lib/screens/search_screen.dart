@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/audio_handler.dart';
+import 'package:raag_music/widgets/my_drawer.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
 
 import 'Library Screen/all_songs_screen.dart';
@@ -23,6 +24,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   final FocusNode _searchFocusNode = FocusNode();
   List<SongModel> _allSongs = [];
   List<SongModel> _filteredSongs = [];
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
 
   @override
   void initState() {
@@ -90,8 +93,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               ),
       ),
       child: Scaffold(
+        key: _scaffoldKey,
+        drawer: const MyDrawer(),
         backgroundColor: Colors.transparent,
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => _scaffoldKey.currentState!.openDrawer(),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: TextField(
@@ -116,9 +125,12 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           bottom: _searchFocusNode.hasFocus
               ? null
               : TabBar(
+                  indicatorColor: Theme.of(context).colorScheme.secondary,
                   controller: _tabController,
+                  labelColor: Theme.of(context).colorScheme.secondary,
+                  unselectedLabelColor: Colors.grey,
                   tabs: const [
-                    Tab(text: "Albums"),
+                    Tab(text: "Albums",),
                     Tab(text: "Artists"),
                   ],
                 ),
@@ -152,9 +164,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           title: Text(song.title, style: Theme.of(context).textTheme.bodyLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(song.artist ?? "Unknown Artist", style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: SongOptionsMenu(song: song),
-          onTap: () {
-            _audioHandler.playSongs(_filteredSongs, index);
-            Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(song: song)));
+          onTap: () async {
+            await _audioHandler.playSongs(_filteredSongs, index);
+            if (!mounted) return;
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerScreen()));
           },
         );
       },

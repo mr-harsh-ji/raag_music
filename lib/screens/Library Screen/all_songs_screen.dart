@@ -84,16 +84,14 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
     }
   }
 
-  void _playAll() {
+  void _playAll() async {
     if (_songs.isNotEmpty) {
-      _audioHandler.playSongs(_songs, 0);
+      await _audioHandler.playSongs(_songs, 0);
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PlayerScreen(
-            song: _songs[0],
-            playlistSource: widget.isFavorites ? 'Favorites' : null,
-          ),
+          builder: (context) => const PlayerScreen(),
         ),
       );
     }
@@ -115,15 +113,15 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
         elevation: 0,
         title: Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
         actions: [
-          if (widget.isFavorites)
+          if (!widget.isSelectionMode)
             TextButton(
               onPressed: _playAll,
-              child: Text('Play All', style: TextStyle(color: Theme.of(context).primaryColor)),
+              child: Text('Play All', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
             ),
           if (widget.isSelectionMode)
             TextButton(
               onPressed: () => Navigator.pop(context, _selectedSongIds.toList()),
-              child: Text('Done', style: TextStyle(color: Theme.of(context).primaryColor)),
+              child: Text('Done', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
             )
         ],
       ),
@@ -174,7 +172,7 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
                               },
                             )
                           : SongOptionsMenu(song: song),
-                      onTap: () {
+                      onTap: () async {
                         if (widget.isSelectionMode) {
                           setState(() {
                             if (isSelected) {
@@ -184,14 +182,12 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
                             }
                           });
                         } else {
-                          _audioHandler.playSongs(_songs, index);
+                          await _audioHandler.playSongs(_songs, index);
+                          if (!mounted) return;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => PlayerScreen(
-                                song: song,
-                                playlistSource: widget.isFavorites ? 'Favorites' : null,
-                              ),
+                              builder: (context) => const PlayerScreen(),
                             ),
                           );
                         }

@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/favorites_service.dart';
 import 'package:raag_music/services/recently_played_service.dart';
+import 'package:raag_music/widgets/my_drawer.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
 
 import '../services/audio_handler.dart';
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final RecentlyPlayedService _recentlyPlayedService = RecentlyPlayedService();
   List<SongModel> _favoriteSongs = [];
   List<SongModel> _recentlyPlayedSongs = [];
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -91,14 +93,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
       ),
       child: Scaffold(
+        key: _scaffoldKey,
+        drawer: const MyDrawer(),
         backgroundColor: Colors.transparent,
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => _scaffoldKey.currentState!.openDrawer(),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: const Text(
+          title: Text(
             "RaagMusic",
             style: TextStyle(
-              color: Color(0xffF8AB02),
+              color: Theme.of(context).colorScheme.secondary,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -152,15 +160,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, index) {
                           final song = songs[index];
                           return GestureDetector(
-                            onTap: () {
-                              _audioHandler.playSongs(
+                            onTap: () async {
+                              await _audioHandler.playSongs(
                                 songs,
                                 index,
                               );
+                              if (!mounted) return;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => PlayerScreen(song: song),
+                                  builder: (context) => const PlayerScreen(),
                                 ),
                               );
                             },
@@ -261,16 +270,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, index) {
                           final song = _recentlyPlayedSongs[index];
                           return GestureDetector(
-                            onTap: () {
-                              _audioHandler.playSongs(
+                            onTap: () async {
+                              await _audioHandler.playSongs(
                                 _recentlyPlayedSongs,
                                 index,
                               );
+                              if (!mounted) return;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      PlayerScreen(song: song, playlistSource: "Recently Played"),
+                                      const PlayerScreen(),
                                 ),
                               );
                             },
@@ -371,18 +381,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               itemBuilder: (context, index) {
                                 final song = _favoriteSongs[index];
                                 return GestureDetector(
-                                  onTap: () {
-                                    _audioHandler.playSongs(
+                                  onTap: () async {
+                                    await _audioHandler.playSongs(
                                       _favoriteSongs,
                                       index,
                                     );
+                                    if (!mounted) return;
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => PlayerScreen(
-                                          song: song,
-                                          playlistSource: 'Favorites',
-                                        ),
+                                        builder: (context) => const PlayerScreen(),
                                       ),
                                     );
                                   },
@@ -458,15 +466,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, index) {
                           final song = songs[index];
                           return GestureDetector(
-                            onTap: () {
-                              _audioHandler.playSongs(
+                            onTap: () async {
+                              await _audioHandler.playSongs(
                                 songs,
                                 index,
                               );
+                              if (!mounted) return;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => PlayerScreen(song: song),
+                                  builder: (context) => const PlayerScreen(),
                                 ),
                               );
                             },

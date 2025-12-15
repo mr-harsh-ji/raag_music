@@ -71,19 +71,12 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
         }
 
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
-            final song = SongModel({
-              '_id': int.parse(mediaItem.id),
-              'title': mediaItem.title,
-              'artist': mediaItem.artist,
-              'album': mediaItem.album,
-              'duration': mediaItem.duration?.inMilliseconds,
-              '_uri': mediaItem.extras!['url'],
-            });
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PlayerScreen(song: song),
+                builder: (context) => const PlayerScreen(),
               ),
             );
           },
@@ -159,7 +152,7 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
                         IconButton(
                           icon: const Icon(
                             Icons.skip_previous_rounded,
-                            color: Colors.white,
+                            color: Color(0xffF8AB02),
                           ),
                           onPressed: _audioHandler.skipToPrevious,
                         ),
@@ -168,7 +161,7 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
                             isPlaying
                                 ? Icons.pause_rounded
                                 : Icons.play_arrow_rounded,
-                            color: Colors.white,
+                            color: Color(0xffF8AB02),
                           ),
                           onPressed: isPlaying
                               ? _audioHandler.pause
@@ -177,7 +170,7 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
                         IconButton(
                           icon: const Icon(
                             Icons.skip_next_rounded,
-                            color: Colors.white,
+                            color: Color(0xffF8AB02),
                           ),
                           onPressed: _audioHandler.skipToNext,
                         ),

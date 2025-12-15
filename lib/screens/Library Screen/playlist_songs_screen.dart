@@ -1,6 +1,9 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/models/playlist_model.dart';
+import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/playlist_service.dart';
 
 import '../player_screen.dart';
@@ -18,6 +21,7 @@ class PlaylistSongsScreen extends StatefulWidget {
 class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
   final PlaylistService _playlistService = PlaylistService();
   final OnAudioQuery _audioQuery = OnAudioQuery();
+  final _audioHandler = GetIt.instance<AudioHandler>() as MyAudioHandler;
   List<SongModel> _playlistSongs = [];
 
   @override
@@ -63,6 +67,19 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
     }
   }
 
+  void _playAll() async {
+    if (_playlistSongs.isNotEmpty) {
+      await _audioHandler.playSongs(_playlistSongs, 0);
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PlayerScreen(),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -87,6 +104,10 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
           title: Text(widget.playlist.name, style: Theme.of(context).textTheme.titleLarge),
           centerTitle: true,
           actions: [
+            TextButton(
+              onPressed: _playAll,
+              child: Text('Play All', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
+            ),
             IconButton(
               icon: Icon(Icons.add, color: Theme.of(context).iconTheme.color),
               onPressed: _navigateToAddSongs,
@@ -108,12 +129,16 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
                       icon: Icon(Icons.remove, color: Theme.of(context).iconTheme.color),
                       onPressed: () => _removeSongFromPlaylist(song.id),
                     ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlayerScreen(song: song),
-                      ),
-                    ),
+                    onTap: () async {
+                      await _audioHandler.playSongs(_playlistSongs, index);
+                      if (!mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PlayerScreen(),
+                        ),
+                      );
+                    },
                   );
                 },
               ),

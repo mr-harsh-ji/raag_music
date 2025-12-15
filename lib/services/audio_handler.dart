@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/recently_played_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<AudioHandler> initAudioService() async {
   return await AudioService.init(
@@ -18,12 +19,14 @@ class MyAudioHandler extends BaseAudioHandler {
   final _player = AudioPlayer();
   final _playlist = ConcatenatingAudioSource(children: []);
   final _recentlyPlayedService = RecentlyPlayedService();
+  final _audioQuery = OnAudioQuery();
 
   MyAudioHandler() {
     _loadEmptyPlaylist();
     _notifyAudioHandlerAboutPlaybackState();
     _listenForCurrentSongIndexChanges();
     _listenForSequenceStateChanges();
+    _listenForPlayerCompletion();
   }
 
   Future<void> _loadEmptyPlaylist() async {
@@ -56,8 +59,8 @@ class MyAudioHandler extends BaseAudioHandler {
           ProcessingState.completed: AudioProcessingState.completed,
         }[_player.processingState]!,
         playing: playing,
-        updatePosition: _player.position,
-        bufferedPosition: _player.bufferedPosition,
+        updatePosition: event.updatePosition,
+        bufferedPosition: event.bufferedPosition,
         speed: _player.speed,
         queueIndex: event.currentIndex,
       ));
@@ -87,6 +90,14 @@ class MyAudioHandler extends BaseAudioHandler {
     });
   }
 
+  void _listenForPlayerCompletion() {
+    _player.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        stop();
+      }
+    });
+  }
+
   @override
   Future<void> addQueueItems(List<MediaItem> mediaItems) async {
     final audioSource = mediaItems.map(_createAudioSource);
@@ -94,7 +105,7 @@ class MyAudioHandler extends BaseAudioHandler {
     final newQueue = queue.value..addAll(mediaItems);
     queue.add(newQueue);
   }
-  
+
   Future<void> addToQueue(SongModel song) async {
     final mediaItem = _songToMediaItem(song);
     if (_playlist.length == 0) {
@@ -103,7 +114,7 @@ class MyAudioHandler extends BaseAudioHandler {
       await addQueueItems([mediaItem]);
     }
   }
-  
+
   Future<void> playNext(SongModel song) async {
     final mediaItem = _songToMediaItem(song);
      if (_playlist.length == 0) {
@@ -126,7 +137,7 @@ class MyAudioHandler extends BaseAudioHandler {
       tag: mediaItem,
     );
   }
-  
+
   MediaItem _songToMediaItem(SongModel song) {
     return MediaItem(
         id: song.id.toString(),
@@ -138,7 +149,7 @@ class MyAudioHandler extends BaseAudioHandler {
         extras: {'url': song.uri!},
       );
   }
-  
+
   SongModel _mediaItemToSongModel(MediaItem mediaItem) {
     return SongModel({
       '_id': int.parse(mediaItem.id),
@@ -173,8 +184,13 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
-    await _player.stop();
-    return super.stop();
+    final prefs = await SharedPreferences.getInstance();
+    final stopOnClose = prefs.getBool('stopOnClose') ?? true;
+    if (stopOnClose) {
+      await _player.stop();
+      mediaItem.add(null);
+      await super.stop();
+    }
   }
 
   Future<void> playSongs(List<SongModel> songs, int initialIndex) async {
@@ -187,6 +203,15 @@ class MyAudioHandler extends BaseAudioHandler {
     
     await _player.setAudioSource(_playlist, initialIndex: initialIndex);
     play();
+  }
+
+  Future<void> scan() async {
+    final songs = await _audioQuery.querySongs();
+    final filteredSongs = songs.where((song) => song.size > 100 * 1024).toList();
+    final mediaItems = filteredSongs.map(_songToMediaItem).toList();
+    await _playlist.clear();
+    await _playlist.addAll(mediaItems.map(_createAudioSource).toList());
+    queue.add(mediaItems);
   }
 
   void reorderPlaylist(int oldIndex, int newIndex) {

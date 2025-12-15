@@ -5,6 +5,7 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/recently_played_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:raag_music/widgets/my_drawer.dart';
 
 import 'all_songs_screen.dart';
 import 'my_music_screen.dart';
@@ -76,43 +77,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
       child: Scaffold(
         key: _scaffoldKey,
-        drawer: Drawer(
-            child: Container(
-          decoration: BoxDecoration(
-            gradient: Theme.of(context).brightness == Brightness.dark
-                ? const LinearGradient(
-                    colors: [Color(0xFF282828), Color(0xFF000000)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-          ),
-          child: ListView(
-            children: [
-              DrawerHeader(
-                child: Column(
-                  children: [
-                    Image.asset(
-                      "assets/images/raag_logo.png",
-                      width: 80,
-                      height: 80,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _userName,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        )
-        ),
+        drawer: const MyDrawer(),
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -140,18 +105,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   onTap: () {
                     final mediaItem = _audioHandler.mediaItem.value;
                     if (mediaItem != null) {
-                      final song = SongModel({
-                        '_id': int.parse(mediaItem.id),
-                        'title': mediaItem.title,
-                        'artist': mediaItem.artist,
-                        'album': mediaItem.album,
-                        'duration': mediaItem.duration?.inMilliseconds,
-                        '_uri': mediaItem.extras!['url'],
-                      });
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => PlayerScreen(song: song)));
+                              builder: (context) => const PlayerScreen()));
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('No song is currently playing.'),

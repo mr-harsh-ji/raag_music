@@ -10,14 +10,12 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:marquee/marquee.dart';
 import 'package:raag_music/services/favorites_service.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/audio_handler.dart';
 
 class PlayerScreen extends StatefulWidget {
-  final SongModel song;
-  final String? playlistSource;
-
-  const PlayerScreen({super.key, required this.song, this.playlistSource});
+  const PlayerScreen({super.key});
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -28,10 +26,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final FavoritesService _favoritesService = FavoritesService();
   late AudioPlayer _audioPlayer;
   late PageController _pageController;
+  late SharedPreferences _prefs;
 
   bool _isVolumeSliderVisible = false;
   Timer? _volumeHideTimer;
   bool _isFavorited = false;
+  bool _gestureVolume = true;
 
   @override
   void initState() {
@@ -40,7 +40,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _pageController = PageController(
       initialPage: _audioPlayer.currentIndex ?? 0,
     );
-    _checkIfFavorite(widget.song.id);
+    _loadSettings();
 
     _audioHandler.mediaItem.listen((mediaItem) {
       if (mediaItem != null) {
@@ -60,6 +60,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
           curve: Curves.ease,
         );
       }
+    });
+  }
+
+  Future<void> _loadSettings() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _gestureVolume = _prefs.getBool('gestureVolume') ?? true;
     });
   }
 
@@ -97,8 +104,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return "$twoDigitMinutes:$twoDigitSeconds";
   }
 
-  void _playPause() =>
-      _audioHandler.playbackState.value.playing ? _audioHandler.pause() : _audioHandler.play();
+  void _playPause() {
+    _audioHandler.playbackState.value.playing
+        ? _audioHandler.pause()
+        : _audioHandler.play();
+  }
 
   void _toggleFavorite() async {
     final mediaItem = _audioHandler.mediaItem.value;
@@ -124,7 +134,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       builder: (context) => SimpleDialog(
         title: const Text('Select Speed'),
         backgroundColor: const Color(0xFF282828),
-        titleTextStyle: const TextStyle(color: Color(0xffF8AB02), fontSize: 20),
+        titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 20),
         children: speeds
             .map(
               (speedData) => SimpleDialogOption(
@@ -244,12 +254,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
       stream: _audioHandler.mediaItem,
       builder: (context, snapshot) {
         final mediaItem = snapshot.data;
-        if (mediaItem == null) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF282828),
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
 
         return SafeArea(
           child: Container(
@@ -274,8 +278,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         ),
                       ),
                       Expanded(
-                        child: widget.playlistSource != null
-                            ? Column(
+                        child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
@@ -285,14 +288,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         fontSize: 12),
                                   ),
                                   Text(
-                                    widget.playlistSource!,
+                                    mediaItem?.album ?? 'Unknown Album',
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               )
-                            : Container(),
                       ),
                       Row(
                         children: [
@@ -300,20 +302,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             onPressed: () {},
                             icon: const Icon(Icons.lyrics, color: Colors.white),
                           ),
-                          SongOptionsMenu(song: _audioHandler.mediaItem.value != null ? SongModel({
-                            '_id': int.parse(_audioHandler.mediaItem.value!.id),
-                            'title': _audioHandler.mediaItem.value!.title,
-                            'artist': _audioHandler.mediaItem.value!.artist,
-                            'album': _audioHandler.mediaItem.value!.album,
-                            'duration': _audioHandler.mediaItem.value!.duration?.inMilliseconds,
-                            '_uri': _audioHandler.mediaItem.value!.extras!['url'],
-                          }) : widget.song),
+                          if (mediaItem != null)
+                          SongOptionsMenu(song: SongModel({
+                            '_id': int.parse(mediaItem.id),
+                            'title': mediaItem.title,
+                            'artist': mediaItem.artist,
+                            'album': mediaItem.album,
+                            'duration': mediaItem.duration?.inMilliseconds,
+                            '_uri': mediaItem.extras!['url'],
+                          })),
                         ],
                       ),
                     ],
                   ),
                   SizedBox(height: scrSize.height * 0.02),
-                  RawGestureDetector(
+                  _gestureVolume ? RawGestureDetector(
                     gestures: {
                       VerticalDragGestureRecognizer:
                           GestureRecognizerFactoryWithHandlers<
@@ -330,133 +333,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         },
                       ),
                     },
-                    child: SizedBox(
-                      height: scrSize.height * 0.4,
-                      child: StreamBuilder<List<MediaItem>>(
-                        stream: _audioHandler.queue,
-                        builder: (context, snapshot) {
-                          final queue = snapshot.data ?? [];
-                          return Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              PageView.builder(
-                                controller: _pageController,
-                                itemCount: queue.length,
-                                onPageChanged: (index) {
-                                  _audioHandler.skipToQueueItem(index);
-                                },
-                                itemBuilder: (context, index) {
-                                  final item = queue[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20.0,
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      child: QueryArtworkWidget(
-                                        id: int.parse(item.id),
-                                        type: ArtworkType.AUDIO,
-                                        artworkWidth: scrSize.width * 0.85,
-                                        artworkHeight: scrSize.height * 0.4,
-                                        artworkFit: BoxFit.cover,
-                                        artworkQuality: FilterQuality.high,
-                                        size: 1000,
-                                        keepOldArtwork: true,
-                                        nullArtworkWidget: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              15.0,
-                                            ),
-                                            color: Colors.grey[800],
-                                          ),
-                                          width: scrSize.width * 0.85,
-                                          height: scrSize.height * 0.4,
-                                          child: const Icon(
-                                            CupertinoIcons.double_music_note,
-                                            color: Colors.white,
-                                            size: 200,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              AnimatedOpacity(
-                                duration: const Duration(milliseconds: 300),
-                                opacity: _isVolumeSliderVisible ? 1.0 : 0.0,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(50),
-                                  child: BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                      sigmaX: 10,
-                                      sigmaY: 10,
-                                    ),
-                                    child: Container(
-                                      width: 80,
-                                      height: scrSize.height * 0.30,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                      ),
-                                      child: StreamBuilder<double>(
-                                        stream: _audioPlayer.volumeStream,
-                                        builder: (context, volumeSnapshot) {
-                                          final volume =
-                                              volumeSnapshot.data ??
-                                                  _audioPlayer.volume;
-                                          return Stack(
-                                            alignment: Alignment.center,
-                                            children: [
-                                              Align(
-                                                alignment:
-                                                    Alignment.bottomCenter,
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(50),
-                                                  child: Align(
-                                                    heightFactor: volume,
-                                                    child: Container(
-                                                      color: const Color(
-                                                        0xffF8AB02,
-                                                      ).withOpacity(0.9),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              Positioned(
-                                                bottom: 20,
-                                                child: Icon(
-                                                  volume > 0.5
-                                                      ? Icons.volume_up
-                                                      : volume > 0
-                                                          ? Icons.volume_down
-                                                          : Icons.volume_off,
-                                                  color: Colors.white,
-                                                  size: 30,
-                                                ),
-                                              ),
-                                              Text(
-                                                "${(volume * 100).toStringAsFixed(0)}%",
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Expanded(
+                    child: buildPlayerControls(scrSize, mediaItem),
+                  ) : buildPlayerControls(scrSize, mediaItem),
+                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
@@ -465,7 +344,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             height: 40,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: _buildMarquee(
-                              mediaItem.title,
+                              mediaItem?.title ?? "Loading...",
                               const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -477,7 +356,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             height: 25,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: _buildMarquee(
-                              mediaItem.artist ?? "Unknown Artist",
+                              mediaItem?.artist ?? "Unknown Artist",
                               const TextStyle(
                                 fontSize: 18,
                                 color: Colors.white,
@@ -497,7 +376,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         ? Icons.favorite
                                         : Icons.favorite_border,
                                   ),
-                                  color: const Color(0xffF8AB02),
+                                  color: Theme.of(context).colorScheme.secondary,
                                   onPressed: _toggleFavorite,
                                 ),
                                 StreamBuilder<double>(
@@ -512,20 +391,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
+                                  
                                     ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          StreamBuilder<PlaybackState>(
-                            stream: _audioHandler.playbackState,
+                          StreamBuilder<Duration>(
+                            stream: _audioPlayer.positionStream,
                             builder: (context, snapshot) {
-                              final playbackState = snapshot.data;
-                              final position =
-                                  playbackState?.updatePosition ?? Duration.zero;
+                              final position = snapshot.data ?? Duration.zero;
                               final duration =
-                                  mediaItem.duration ?? Duration.zero;
+                                  mediaItem?.duration ?? Duration.zero;
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 20.0,
@@ -533,16 +411,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 child: Column(
                                   children: [
                                     Slider(
-                                      value: (duration.inSeconds > 0)
-                                          ? (position.inSeconds /
-                                                  duration.inSeconds)
-                                              .clamp(0.0, 1.0)
+                                      value: duration.inMilliseconds > 0
+                                          ? position.inMilliseconds
+                                              .clamp(0, duration.inMilliseconds)
+                                              .toDouble()
                                           : 0.0,
                                       min: 0.0,
-                                      max: 1.0,
-                                      onChanged: (value) => _audioHandler
-                                          .seek(duration * value),
-                                      activeColor: const Color(0xffF8AB02),
+                                      max: duration.inMilliseconds.toDouble(),
+                                      onChanged: (value) {
+                                        _audioHandler.seek(Duration(milliseconds: value.toInt()));
+                                      },
+                                      activeColor: Theme.of(context).colorScheme.secondary,
                                       inactiveColor: Colors.grey,
                                     ),
                                     Padding(
@@ -583,7 +462,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   builder: (context, snapshot) => IconButton(
                                     icon: const Icon(Icons.shuffle),
                                     color: snapshot.data ?? false
-                                        ? const Color(0xffF8AB02)
+                                        ? Theme.of(context).colorScheme.secondary
                                         : const Color(0xff765204),
                                     onPressed: () async {
                                       final enable = !(snapshot.data ?? false);
@@ -603,7 +482,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.skip_previous_rounded),
-                                  color: const Color(0xffF8AB02),
+                                  color: Theme.of(context).colorScheme.secondary,
                                   iconSize: 40,
                                   onPressed: _audioHandler.skipToPrevious,
                                 ),
@@ -618,7 +497,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                             ? Icons.pause_circle_filled_rounded
                                             : Icons.play_circle_fill_rounded,
                                       ),
-                                      color: const Color(0xffF8AB02),
+                                      color: Theme.of(context).colorScheme.secondary,
                                       iconSize: 60,
                                       onPressed: _playPause,
                                     );
@@ -626,7 +505,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.skip_next_rounded),
-                                  color: const Color(0xffF8AB02),
+                                  color: Theme.of(context).colorScheme.secondary,
                                   iconSize: 40,
                                   onPressed: _audioHandler.skipToNext,
                                 ),
@@ -639,7 +518,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                           : Icons.repeat,
                                     ),
                                     color: snapshot.data != LoopMode.off
-                                        ? const Color(0xffF8AB02)
+                                        ? Theme.of(context).colorScheme.secondary
                                         : const Color(0xff765204),
                                     onPressed: () {
                                       final newMode =
@@ -703,6 +582,135 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget buildPlayerControls(Size scrSize, MediaItem? mediaItem) {
+    return SizedBox(
+      height: scrSize.height * 0.4,
+      child: StreamBuilder<List<MediaItem>>(
+        stream: _audioHandler.queue,
+        builder: (context, snapshot) {
+          final queue = snapshot.data ?? [];
+          if (mediaItem == null || queue.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              PageView.builder(
+                controller: _pageController,
+                itemCount: queue.length,
+                onPageChanged: (index) {
+                  _audioHandler.skipToQueueItem(index);
+                },
+                itemBuilder: (context, index) {
+                  final item = queue[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: QueryArtworkWidget(
+                        id: int.parse(item.id),
+                        type: ArtworkType.AUDIO,
+                        artworkWidth: scrSize.width * 0.85,
+                        artworkHeight: scrSize.height * 0.4,
+                        artworkFit: BoxFit.cover,
+                        artworkQuality: FilterQuality.high,
+                        size: 1000,
+                        keepOldArtwork: true,
+                        nullArtworkWidget: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              15.0,
+                            ),
+                            color: Colors.grey[800],
+                          ),
+                          width: scrSize.width * 0.85,
+                          height: scrSize.height * 0.4,
+                          child: const Icon(
+                            CupertinoIcons.double_music_note,
+                            color: Colors.white,
+                            size: 200,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: _isVolumeSliderVisible ? 1.0 : 0.0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: 10,
+                      sigmaY: 10,
+                    ),
+                    child: Container(
+                      width: 80,
+                      height: scrSize.height * 0.30,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                      child: StreamBuilder<double>(
+                        stream: _audioPlayer.volumeStream,
+                        builder: (context, volumeSnapshot) {
+                          final volume =
+                              volumeSnapshot.data ??
+                                  _audioPlayer.volume;
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Align(
+                                alignment:
+                                Alignment.bottomCenter,
+                                child: ClipRRect(
+                                  borderRadius:
+                                  BorderRadius.circular(50),
+                                  child: Align(
+                                    heightFactor: volume,
+                                    child: Container(
+                                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.9),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 20,
+                                child: Icon(
+                                  volume > 0.5
+                                      ? Icons.volume_up
+                                      : volume > 0
+                                      ? Icons.volume_down
+                                      : Icons.volume_off,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                              ),
+                              Text(
+                                "${(volume * 100).toStringAsFixed(0)}%",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

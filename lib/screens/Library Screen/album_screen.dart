@@ -59,7 +59,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                      Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PlayerScreen(song: song),
+                        builder: (context) => PlayerScreen(),
                       ),
                     );
                   },
