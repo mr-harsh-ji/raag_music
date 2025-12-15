@@ -48,16 +48,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
   }
 
-  void _playAll() {
+  void _playAll() async {
     if (_favoriteSongs.isNotEmpty) {
-      _audioHandler.playSongs(_favoriteSongs, 0);
+      await _audioHandler.playSongs(_favoriteSongs, 0);
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PlayerScreen(
-            song: _favoriteSongs[0],
-            playlistSource: 'Favorites',
-          ),
+          builder: (context) => const PlayerScreen(),
         ),
       );
     }
@@ -126,15 +124,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       maxLines: 1,
                     ),
                     trailing: SongOptionsMenu(song: song),
-                    onTap: () {
-                      _audioHandler.playSongs(_favoriteSongs, index);
+                    onTap: () async {
+                      await _audioHandler.playSongs(_favoriteSongs, index);
+                      if (!mounted) return;
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => PlayerScreen(
-                            song: song,
-                            playlistSource: 'Favorites',
-                          ),
+                          builder: (context) => const PlayerScreen(),
                         ),
                       );
                     },

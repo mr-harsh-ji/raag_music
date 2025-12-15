@@ -24,6 +24,7 @@ class MyAudioHandler extends BaseAudioHandler {
     _notifyAudioHandlerAboutPlaybackState();
     _listenForCurrentSongIndexChanges();
     _listenForSequenceStateChanges();
+    _listenForPlayerCompletion();
   }
 
   Future<void> _loadEmptyPlaylist() async {
@@ -87,6 +88,14 @@ class MyAudioHandler extends BaseAudioHandler {
     });
   }
 
+  void _listenForPlayerCompletion() {
+    _player.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        stop();
+      }
+    });
+  }
+
   @override
   Future<void> addQueueItems(List<MediaItem> mediaItems) async {
     final audioSource = mediaItems.map(_createAudioSource);
@@ -94,7 +103,7 @@ class MyAudioHandler extends BaseAudioHandler {
     final newQueue = queue.value..addAll(mediaItems);
     queue.add(newQueue);
   }
-  
+
   Future<void> addToQueue(SongModel song) async {
     final mediaItem = _songToMediaItem(song);
     if (_playlist.length == 0) {
@@ -103,7 +112,7 @@ class MyAudioHandler extends BaseAudioHandler {
       await addQueueItems([mediaItem]);
     }
   }
-  
+
   Future<void> playNext(SongModel song) async {
     final mediaItem = _songToMediaItem(song);
      if (_playlist.length == 0) {
@@ -126,7 +135,7 @@ class MyAudioHandler extends BaseAudioHandler {
       tag: mediaItem,
     );
   }
-  
+
   MediaItem _songToMediaItem(SongModel song) {
     return MediaItem(
         id: song.id.toString(),
@@ -138,7 +147,7 @@ class MyAudioHandler extends BaseAudioHandler {
         extras: {'url': song.uri!},
       );
   }
-  
+
   SongModel _mediaItemToSongModel(MediaItem mediaItem) {
     return SongModel({
       '_id': int.parse(mediaItem.id),
@@ -174,7 +183,8 @@ class MyAudioHandler extends BaseAudioHandler {
   @override
   Future<void> stop() async {
     await _player.stop();
-    return super.stop();
+    mediaItem.add(null);
+    await super.stop();
   }
 
   Future<void> playSongs(List<SongModel> songs, int initialIndex) async {

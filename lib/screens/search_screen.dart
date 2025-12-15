@@ -116,9 +116,12 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           bottom: _searchFocusNode.hasFocus
               ? null
               : TabBar(
+                  indicatorColor: Color(0xffF8AB02),
                   controller: _tabController,
+                  labelColor: Color(0xffF8AB02),
+                  unselectedLabelColor: Colors.grey,
                   tabs: const [
-                    Tab(text: "Albums"),
+                    Tab(text: "Albums",),
                     Tab(text: "Artists"),
                   ],
                 ),
@@ -152,9 +155,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           title: Text(song.title, style: Theme.of(context).textTheme.bodyLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(song.artist ?? "Unknown Artist", style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: SongOptionsMenu(song: song),
-          onTap: () {
-            _audioHandler.playSongs(_filteredSongs, index);
-            Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(song: song)));
+          onTap: () async {
+            await _audioHandler.playSongs(_filteredSongs, index);
+            if (!mounted) return;
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerScreen()));
           },
         );
       },

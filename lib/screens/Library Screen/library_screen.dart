@@ -140,18 +140,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   onTap: () {
                     final mediaItem = _audioHandler.mediaItem.value;
                     if (mediaItem != null) {
-                      final song = SongModel({
-                        '_id': int.parse(mediaItem.id),
-                        'title': mediaItem.title,
-                        'artist': mediaItem.artist,
-                        'album': mediaItem.album,
-                        'duration': mediaItem.duration?.inMilliseconds,
-                        '_uri': mediaItem.extras!['url'],
-                      });
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => PlayerScreen(song: song)));
+                              builder: (context) => const PlayerScreen()));
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('No song is currently playing.'),

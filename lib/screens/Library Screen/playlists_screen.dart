@@ -52,7 +52,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Theme.of(context).primaryColor)),
+              child: Text('Cancel', style: TextStyle(color: Color(0xffF8AB02))),
             ),
             TextButton(
               onPressed: () {
@@ -65,7 +65,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                   });
                 }
               },
-              child: Text('Create', style: TextStyle(color: Theme.of(context).primaryColor)),
+              child: Text('Create', style: TextStyle(color: Color(0xffF8AB02))),
             ),
           ],
         );
@@ -115,7 +115,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                     title: Text(playlist.name,
                         style: Theme.of(context).textTheme.bodyLarge),
                     trailing: IconButton(
-                      icon: Icon(Icons.delete, color: Theme.of(context).iconTheme.color),
+                      icon: Icon(Icons.delete, color: Color(0xffF8AB02)),
                       onPressed: () => _deletePlaylist(playlist.name),
                     ),
                     onTap: () => Navigator.push(
@@ -129,6 +129,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                 },
               ),
         floatingActionButton: FloatingActionButton(
+          backgroundColor: Color(0xffF8AB02),
           onPressed: _createPlaylist,
           child: const Icon(Icons.add),
         ),

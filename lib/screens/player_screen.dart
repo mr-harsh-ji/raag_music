@@ -14,10 +14,7 @@ import 'package:raag_music/widgets/song_options_menu.dart';
 import '../services/audio_handler.dart';
 
 class PlayerScreen extends StatefulWidget {
-  final SongModel song;
-  final String? playlistSource;
-
-  const PlayerScreen({super.key, required this.song, this.playlistSource});
+  const PlayerScreen({super.key});
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -40,7 +37,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _pageController = PageController(
       initialPage: _audioPlayer.currentIndex ?? 0,
     );
-    _checkIfFavorite(widget.song.id);
 
     _audioHandler.mediaItem.listen((mediaItem) {
       if (mediaItem != null) {
@@ -124,7 +120,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       builder: (context) => SimpleDialog(
         title: const Text('Select Speed'),
         backgroundColor: const Color(0xFF282828),
-        titleTextStyle: const TextStyle(color: Color(0xffF8AB02), fontSize: 20),
+        titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 20),
         children: speeds
             .map(
               (speedData) => SimpleDialogOption(
@@ -274,8 +270,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         ),
                       ),
                       Expanded(
-                        child: widget.playlistSource != null
-                            ? Column(
+                        child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
@@ -285,14 +280,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         fontSize: 12),
                                   ),
                                   Text(
-                                    widget.playlistSource!,
+                                    mediaItem.album ?? 'Unknown Album',
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               )
-                            : Container(),
                       ),
                       Row(
                         children: [
@@ -300,14 +294,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             onPressed: () {},
                             icon: const Icon(Icons.lyrics, color: Colors.white),
                           ),
-                          SongOptionsMenu(song: _audioHandler.mediaItem.value != null ? SongModel({
-                            '_id': int.parse(_audioHandler.mediaItem.value!.id),
-                            'title': _audioHandler.mediaItem.value!.title,
-                            'artist': _audioHandler.mediaItem.value!.artist,
-                            'album': _audioHandler.mediaItem.value!.album,
-                            'duration': _audioHandler.mediaItem.value!.duration?.inMilliseconds,
-                            '_uri': _audioHandler.mediaItem.value!.extras!['url'],
-                          }) : widget.song),
+                          SongOptionsMenu(song: SongModel({
+                            '_id': int.parse(mediaItem.id),
+                            'title': mediaItem.title,
+                            'artist': mediaItem.artist,
+                            'album': mediaItem.album,
+                            'duration': mediaItem.duration?.inMilliseconds,
+                            '_uri': mediaItem.extras!['url'],
+                          })),
                         ],
                       ),
                     ],
@@ -416,9 +410,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                                   child: Align(
                                                     heightFactor: volume,
                                                     child: Container(
-                                                      color: const Color(
-                                                        0xffF8AB02,
-                                                      ).withOpacity(0.9),
+                                                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.9),
                                                     ),
                                                   ),
                                                 ),
@@ -497,7 +489,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         ? Icons.favorite
                                         : Icons.favorite_border,
                                   ),
-                                  color: const Color(0xffF8AB02),
+                                  color: Theme.of(context).colorScheme.secondary,
                                   onPressed: _toggleFavorite,
                                 ),
                                 StreamBuilder<double>(
@@ -542,7 +534,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       max: 1.0,
                                       onChanged: (value) => _audioHandler
                                           .seek(duration * value),
-                                      activeColor: const Color(0xffF8AB02),
+                                      activeColor: Theme.of(context).colorScheme.secondary,
                                       inactiveColor: Colors.grey,
                                     ),
                                     Padding(
@@ -583,7 +575,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   builder: (context, snapshot) => IconButton(
                                     icon: const Icon(Icons.shuffle),
                                     color: snapshot.data ?? false
-                                        ? const Color(0xffF8AB02)
+                                        ? Theme.of(context).colorScheme.secondary
                                         : const Color(0xff765204),
                                     onPressed: () async {
                                       final enable = !(snapshot.data ?? false);
@@ -603,7 +595,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.skip_previous_rounded),
-                                  color: const Color(0xffF8AB02),
+                                  color: Theme.of(context).colorScheme.secondary,
                                   iconSize: 40,
                                   onPressed: _audioHandler.skipToPrevious,
                                 ),
@@ -618,7 +610,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                             ? Icons.pause_circle_filled_rounded
                                             : Icons.play_circle_fill_rounded,
                                       ),
-                                      color: const Color(0xffF8AB02),
+                                      color: Theme.of(context).colorScheme.secondary,
                                       iconSize: 60,
                                       onPressed: _playPause,
                                     );
@@ -626,7 +618,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.skip_next_rounded),
-                                  color: const Color(0xffF8AB02),
+                                  color: Theme.of(context).colorScheme.secondary,
                                   iconSize: 40,
                                   onPressed: _audioHandler.skipToNext,
                                 ),
@@ -639,7 +631,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                           : Icons.repeat,
                                     ),
                                     color: snapshot.data != LoopMode.off
-                                        ? const Color(0xffF8AB02)
+                                        ? Theme.of(context).colorScheme.secondary
                                         : const Color(0xff765204),
                                     onPressed: () {
                                       final newMode =
