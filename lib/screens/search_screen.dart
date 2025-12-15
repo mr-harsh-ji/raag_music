@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/audio_handler.dart';
+import 'package:raag_music/widgets/song_options_menu.dart';
 
 import 'Library Screen/all_songs_screen.dart';
 import 'player_screen.dart';
@@ -75,12 +76,18 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF282828), Color(0xFF000000)],
-        ),
+      decoration: BoxDecoration(
+        gradient: Theme.of(context).brightness == Brightness.dark
+            ? const LinearGradient(
+                colors: [Color(0xFF282828), Color(0xFF000000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -90,14 +97,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           title: TextField(
             controller: _searchController,
             focusNode: _searchFocusNode,
-            style: const TextStyle(color: Colors.white),
+            style: Theme.of(context).textTheme.bodyLarge,
             decoration: InputDecoration(
               hintText: "Search for songs, artists, albums...",
-              hintStyle: const TextStyle(color: Colors.white54),
+              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               border: InputBorder.none,
               suffixIcon: _isSearching
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.white),
+                      icon: Icon(Icons.clear, color: Theme.of(context).iconTheme.color),
                       onPressed: () {
                         _searchController.clear();
                         _searchFocusNode.unfocus();
@@ -127,8 +134,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
 
     if (_filteredSongs.isEmpty) {
-      return const Center(
-        child: Text("No results found.", style: TextStyle(color: Colors.white)),
+      return Center(
+        child: Text("No results found.", style: Theme.of(context).textTheme.bodyLarge),
       );
     }
 
@@ -140,10 +147,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           leading: QueryArtworkWidget(
             id: song.id,
             type: ArtworkType.AUDIO,
-            nullArtworkWidget: const Icon(Icons.music_note, color: Colors.white),
+            nullArtworkWidget: Icon(Icons.music_note, color: Theme.of(context).iconTheme.color),
           ),
-          title: Text(song.title, style: const TextStyle(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(song.artist ?? "Unknown Artist", style: const TextStyle(color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(song.title, style: Theme.of(context).textTheme.bodyLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(song.artist ?? "Unknown Artist", style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+          trailing: SongOptionsMenu(song: song),
           onTap: () {
             _audioHandler.playSongs(_filteredSongs, index);
             Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(song: song)));
@@ -173,14 +181,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       ),
       builder: (context, item) {
         if (item.hasError) {
-          return Center(child: Text(item.error.toString(), style: const TextStyle(color: Colors.white)));
+          return Center(child: Text(item.error.toString(), style: Theme.of(context).textTheme.bodyLarge));
         }
         if (item.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         final albums = item.data;
         if (albums == null || albums.isEmpty) {
-          return const Center(child: Text("No Albums Found", style: TextStyle(color: Colors.white)));
+          return Center(child: Text("No Albums Found", style: Theme.of(context).textTheme.bodyLarge));
         }
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -217,13 +225,13 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       type: ArtworkType.ALBUM,
                       artworkWidth: double.infinity,
                       artworkHeight: 150,
-                      nullArtworkWidget: const Icon(Icons.album, color: Colors.white, size: 150),
+                      nullArtworkWidget: Icon(Icons.album, color: Theme.of(context).iconTheme.color, size: 150),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0, left: 4.0),
                       child: Text(
                         album.album,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.bodyLarge,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -232,7 +240,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       padding: const EdgeInsets.only(left: 4.0),
                       child: Text(
                         album.artist ?? "Unknown Artist",
-                        style: const TextStyle(color: Colors.grey),
+                        style: Theme.of(context).textTheme.bodySmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -257,14 +265,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       ),
       builder: (context, item) {
         if (item.hasError) {
-          return Center(child: Text(item.error.toString(), style: const TextStyle(color: Colors.white)));
+          return Center(child: Text(item.error.toString(), style: Theme.of(context).textTheme.bodyLarge));
         }
         if (item.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         final artists = item.data;
         if (artists == null || artists.isEmpty) {
-          return const Center(child: Text("No Artists Found", style: TextStyle(color: Colors.white)));
+          return Center(child: Text("No Artists Found", style: Theme.of(context).textTheme.bodyLarge));
         }
         return ListView.builder(
           itemCount: artists.length,
@@ -289,17 +297,17 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               leading: QueryArtworkWidget(
                 id: artist.id,
                 type: ArtworkType.ARTIST,
-                nullArtworkWidget: const Icon(Icons.person, color: Colors.white),
+                nullArtworkWidget: Icon(Icons.person, color: Theme.of(context).iconTheme.color),
               ),
               title: Text(
                 artist.artist,
-                style: const TextStyle(color: Colors.white),
+                style: Theme.of(context).textTheme.bodyLarge,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(
                 "${artist.numberOfAlbums} Albums | ${artist.numberOfTracks} Songs",
-                style: const TextStyle(color: Colors.grey),
+                style: Theme.of(context).textTheme.bodySmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

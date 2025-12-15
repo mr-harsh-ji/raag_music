@@ -6,10 +6,10 @@ import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/recently_played_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../My App Themes/app_theme.dart';
 import 'all_songs_screen.dart';
 import 'my_music_screen.dart';
 import '../player_screen.dart';
+import 'playlists_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -61,14 +61,36 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppTheme.backgroundGradient,
+      decoration: BoxDecoration(
+        gradient: Theme.of(context).brightness == Brightness.dark
+            ? const LinearGradient(
+                colors: [Color(0xFF282828), Color(0xFF000000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
       ),
       child: Scaffold(
         key: _scaffoldKey,
         drawer: Drawer(
             child: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
+          decoration: BoxDecoration(
+            gradient: Theme.of(context).brightness == Brightness.dark
+                ? const LinearGradient(
+                    colors: [Color(0xFF282828), Color(0xFF000000)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+          ),
           child: ListView(
             children: [
               DrawerHeader(
@@ -82,7 +104,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     const SizedBox(height: 10),
                     Text(
                       _userName,
-                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ],
                 ),
@@ -99,13 +121,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onPressed: () {
               _scaffoldKey.currentState?.openDrawer();
             },
-            icon: const Icon(
+            icon: Icon(
               Icons.menu,
-              color: Colors.white,
+              color: Theme.of(context).iconTheme.color,
               size: 32,
             ),
           ),
-          title: const Text("Library", style: TextStyle(color: Colors.white)),
+          title: Text("Library", style: Theme.of(context).textTheme.titleLarge),
           centerTitle: true,
         ),
         body: Padding(
@@ -150,8 +172,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   icon: Icons.music_note,
                   text: 'My Music',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyMusicScreen()))),
-              const LibraryItem(icon: Icons.playlist_play, text: 'Playlists'),
-              const LibraryItem(icon: Icons.insights, text: 'Stats'),
+              LibraryItem(icon: Icons.playlist_play, text: 'Playlists', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaylistsScreen()))),
             ], 
           ),
         ),
@@ -180,9 +201,9 @@ class LibraryItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 36),
+            Icon(icon, color: Theme.of(context).iconTheme.color, size: 36),
             const SizedBox(width: 20),
-            Text(text, style: const TextStyle(color: Colors.white, fontSize: 18)),
+            Text(text, style: Theme.of(context).textTheme.bodyLarge),
           ],
         ),
       ),

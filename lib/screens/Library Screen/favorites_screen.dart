@@ -4,8 +4,8 @@ import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/favorites_service.dart';
+import 'package:raag_music/widgets/song_options_menu.dart';
 
-import '../../My App Themes/app_theme.dart';
 import '../player_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -63,36 +63,41 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
   }
 
-  void _removeFavorite(int songId) async {
-    await _favoritesService.toggleFavorite(songId);
-    _loadFavoriteSongs();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppTheme.backgroundGradient,
+      decoration: BoxDecoration(
+        gradient: Theme.of(context).brightness == Brightness.dark
+            ? const LinearGradient(
+                colors: [Color(0xFF282828), Color(0xFF000000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: const Text('Favorites', style: TextStyle(color: Colors.white)),
+          title: Text('Favorites', style: Theme.of(context).textTheme.titleLarge),
           centerTitle: true,
           actions: [
             TextButton(
               onPressed: _playAll,
-              child: const Text('Play All', style: TextStyle(color: Colors.white)),
+              child: Text('Play All', style: TextStyle(color: Theme.of(context).primaryColor)),
             )
           ],
         ),
         body: _favoriteSongs.isEmpty
-            ? const Center(
+            ? Center(
                 child: Text(
                   'No favorite songs yet.',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               )
             : ListView.builder(
@@ -103,27 +108,24 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     leading: QueryArtworkWidget(
                       id: song.id,
                       type: ArtworkType.AUDIO,
-                      nullArtworkWidget: const Icon(
+                      nullArtworkWidget: Icon(
                         Icons.music_note,
-                        color: Colors.white,
+                        color: Theme.of(context).iconTheme.color,
                       ),
                     ),
                     title: Text(
                       song.title,
-                      style: const TextStyle(color: Colors.white),
+                      style: Theme.of(context).textTheme.bodyLarge,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
                     subtitle: Text(
                       song.artist ?? 'Unknown Artist',
-                      style: const TextStyle(color: Colors.white70),
+                      style: Theme.of(context).textTheme.bodySmall,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.favorite, color: Color(0xffF8AB02)),
-                      onPressed: () => _removeFavorite(song.id),
-                    ),
+                    trailing: SongOptionsMenu(song: song),
                     onTap: () {
                       _audioHandler.playSongs(_favoriteSongs, index);
                       Navigator.push(

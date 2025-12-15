@@ -9,6 +9,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:marquee/marquee.dart';
 import 'package:raag_music/services/favorites_service.dart';
+import 'package:raag_music/widgets/song_options_menu.dart';
 
 import '../services/audio_handler.dart';
 
@@ -299,13 +300,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             onPressed: () {},
                             icon: const Icon(Icons.lyrics, color: Colors.white),
                           ),
-                          IconButton(
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.more_vert,
-                              color: Colors.white,
-                            ),
-                          ),
+                          SongOptionsMenu(song: _audioHandler.mediaItem.value != null ? SongModel({
+                            '_id': int.parse(_audioHandler.mediaItem.value!.id),
+                            'title': _audioHandler.mediaItem.value!.title,
+                            'artist': _audioHandler.mediaItem.value!.artist,
+                            'album': _audioHandler.mediaItem.value!.album,
+                            'duration': _audioHandler.mediaItem.value!.duration?.inMilliseconds,
+                            '_uri': _audioHandler.mediaItem.value!.extras!['url'],
+                          }) : widget.song),
                         ],
                       ),
                     ],

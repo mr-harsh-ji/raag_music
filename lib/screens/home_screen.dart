@@ -5,8 +5,8 @@ import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/favorites_service.dart';
 import 'package:raag_music/services/recently_played_service.dart';
+import 'package:raag_music/widgets/song_options_menu.dart';
 
-import '../My App Themes/app_theme.dart';
 import '../services/audio_handler.dart';
 import 'Library Screen/all_songs_screen.dart';
 import 'player_screen.dart';
@@ -77,8 +77,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppTheme.backgroundGradient,
+      decoration: BoxDecoration(
+        gradient: Theme.of(context).brightness == Brightness.dark
+            ? const LinearGradient(
+                colors: [Color(0xFF282828), Color(0xFF000000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -106,10 +116,10 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             if (item.data == null || item.data!.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text(
                   "No Songs Found",
-                  style: TextStyle(color: Colors.white),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               );
             }
@@ -122,13 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Quick picks",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 20,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 10),
                     SizedBox(
@@ -181,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       height: 60,
                                       child: Icon(
                                         CupertinoIcons.double_music_note,
-                                        color: Colors.white,
+                                        color: Theme.of(context).iconTheme.color,
                                         size: 30,
                                       ),
                                     ),
@@ -194,34 +200,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                       children: [
                                         Text(
                                           song.title,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 17,
-                                          ),
+                                          style: Theme.of(context).textTheme.bodyLarge,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           song.artist ?? "Unknown Artist",
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 13,
-                                          ),
+                                          style: Theme.of(context).textTheme.bodySmall,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  IconButton(
-                                    onPressed: () {},
-                                    icon: const Icon(
-                                      Icons.more_vert,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                  SongOptionsMenu(song: song),
                                 ],
                               ),
                             ),
@@ -233,13 +226,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           "Recently played",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 20,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                         InkWell(
                           onTap: () {
@@ -252,10 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                           child: Text(
                             "See all",
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 15,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
                       ],
@@ -264,8 +250,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(
                       height: 190,
                       child: _recentlyPlayedSongs.isEmpty 
-                        ? const Center(
-                          child: Text('No recently played songs.', style: TextStyle(color: Colors.white, fontSize: 16),),
+                        ? Center(
+                          child: Text('No recently played songs.', style: Theme.of(context).textTheme.bodyLarge,),
                         )
                         : ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -316,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       child: Icon(
                                         CupertinoIcons
                                             .double_music_note,
-                                        color: Colors.white,
+                                        color: Theme.of(context).iconTheme.color,
                                         size: 50,
                                       ),
                                     ),
@@ -324,21 +310,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const SizedBox(height: 8),
                                   Text(
                                     song.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
+                                    style: Theme.of(context).textTheme.bodyLarge,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     song.artist ?? "Unknown Artist",
-                                    style: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontSize: 12,
-                                    ),
+                                    style: Theme.of(context).textTheme.bodySmall,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -353,13 +332,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           "Favorites",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 20,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                         InkWell(
                           onTap: () {
@@ -375,10 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                           child: Text(
                             "See all",
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 15,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
                       ],
@@ -387,11 +359,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(
                       height: 190,
                       child: _favoriteSongs.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
                                 'No favorite songs yet.',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 16),
+                                style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             )
                           : ListView.builder(
@@ -440,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             height: 130,
                                             child: Icon(
                                               CupertinoIcons.double_music_note,
-                                              color: Colors.white,
+                                              color: Theme.of(context).iconTheme.color,
                                               size: 50,
                                             ),
                                           ),
@@ -448,21 +419,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                         const SizedBox(height: 8),
                                         Text(
                                           song.title,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
+                                          style: Theme.of(context).textTheme.bodyLarge,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           song.artist ?? "Unknown Artist",
-                                          style: TextStyle(
-                                            color: Colors.grey[400],
-                                            fontSize: 12,
-                                          ),
+                                          style: Theme.of(context).textTheme.bodySmall,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -474,13 +438,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                     ),
                     const SizedBox(height: 15),
-                    const Text(
+                    Text(
                       "Last session",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 20,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 10),
                     SizedBox(
@@ -533,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       height: 60,
                                       child: Icon(
                                         CupertinoIcons.double_music_note,
-                                        color: Colors.white,
+                                        color: Theme.of(context).iconTheme.color,
                                         size: 30,
                                       ),
                                     ),
@@ -546,34 +506,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                       children: [
                                         Text(
                                           song.title,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 17,
-                                          ),
+                                          style: Theme.of(context).textTheme.bodyLarge,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           song.artist ?? "Unknown Artist",
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 13,
-                                          ),
+                                          style: Theme.of(context).textTheme.bodySmall,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  IconButton(
-                                    onPressed: () {},
-                                    icon: const Icon(
-                                      Icons.more_vert,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                  SongOptionsMenu(song: song),
                                 ],
                               ),
                             ),

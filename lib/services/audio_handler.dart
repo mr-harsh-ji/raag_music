@@ -94,12 +94,60 @@ class MyAudioHandler extends BaseAudioHandler {
     final newQueue = queue.value..addAll(mediaItems);
     queue.add(newQueue);
   }
+  
+  Future<void> addToQueue(SongModel song) async {
+    final mediaItem = _songToMediaItem(song);
+    if (_playlist.length == 0) {
+      await playSongs([song], 0);
+    } else {
+      await addQueueItems([mediaItem]);
+    }
+  }
+  
+  Future<void> playNext(SongModel song) async {
+    final mediaItem = _songToMediaItem(song);
+     if (_playlist.length == 0) {
+      await playSongs([song], 0);
+    } else {
+      final currentIndex = _player.currentIndex;
+      if (currentIndex != null) {
+        _playlist.insert(currentIndex + 1, _createAudioSource(mediaItem));
+        final newQueue = queue.value..insert(currentIndex + 1, mediaItem);
+        queue.add(newQueue);
+      } else {
+        await playSongs([song, ...queue.value.map(_mediaItemToSongModel)], 0);
+      }
+    }
+  }
 
   UriAudioSource _createAudioSource(MediaItem mediaItem) {
     return AudioSource.uri(
       Uri.parse(mediaItem.extras!['url'] as String),
       tag: mediaItem,
     );
+  }
+  
+  MediaItem _songToMediaItem(SongModel song) {
+    return MediaItem(
+        id: song.id.toString(),
+        album: song.album ?? "Unknown Album",
+        title: song.title,
+        artist: song.artist ?? "Unknown Artist",
+        duration: Duration(milliseconds: song.duration ?? 0),
+        artUri: song.id > 0 ? Uri.parse('content://media/external/audio/media/${song.id}/albumart') : null,
+        extras: {'url': song.uri!},
+      );
+  }
+  
+  SongModel _mediaItemToSongModel(MediaItem mediaItem) {
+    return SongModel({
+      '_id': int.parse(mediaItem.id),
+      'title': mediaItem.title,
+      'artist': mediaItem.artist,
+      'album': mediaItem.album,
+      'duration': mediaItem.duration?.inMilliseconds,
+      '_uri': mediaItem.extras!['url'],
+    });
   }
 
   @override
@@ -133,17 +181,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (songs.isEmpty) return;
     await _playlist.clear();
     
-    final mediaItems = songs.map((song) {
-      return MediaItem(
-        id: song.id.toString(),
-        album: song.album ?? "Unknown Album",
-        title: song.title,
-        artist: song.artist ?? "Unknown Artist",
-        duration: Duration(milliseconds: song.duration ?? 0),
-        artUri: song.id > 0 ? Uri.parse('content://media/external/audio/media/${song.id}/albumart') : null,
-        extras: {'url': song.uri!},
-      );
-    }).toList();
+    final mediaItems = songs.map(_songToMediaItem).toList();
 
     await _playlist.addAll(mediaItems.map(_createAudioSource).toList());
     

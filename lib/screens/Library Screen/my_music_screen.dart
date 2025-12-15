@@ -3,8 +3,6 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/helpers/path_helper.dart';
 import 'package:raag_music/screens/Library%20Screen/all_songs_screen.dart';
 
-import '../../My App Themes/app_theme.dart';
-
 class MyMusicScreen extends StatefulWidget {
   const MyMusicScreen({super.key});
 
@@ -53,12 +51,22 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('My Music'),
+        title: Text('My Music', style: Theme.of(context).textTheme.titleLarge),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
+        decoration: BoxDecoration(
+        gradient: Theme.of(context).brightness == Brightness.dark
+            ? const LinearGradient(
+                colors: [Color(0xFF282828), Color(0xFF000000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+      ),
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView.builder(
@@ -69,9 +77,9 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                   final folderName = folder.split('/').last;
 
                   return ListTile(
-                    leading: const Icon(Icons.folder, color: Colors.white, size: 40),
-                    title: Text(folderName, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text('${songsInFolder.length} songs', style: const TextStyle(color: Colors.white70)),
+                    leading: Icon(Icons.folder, color: Theme.of(context).iconTheme.color, size: 40),
+                    title: Text(folderName, style: Theme.of(context).textTheme.bodyLarge),
+                    subtitle: Text('${songsInFolder.length} songs', style: Theme.of(context).textTheme.bodySmall),
                     onTap: () {
                       Navigator.push(
                         context,
