@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -178,8 +180,13 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToQueueItem(int index) async {
+    final completer = Completer<void>();
+    mediaItem.first.then((_) => completer.complete());
+
     await _player.seek(Duration.zero, index: index);
     play();
+
+    await completer.future;
   }
 
   @override
@@ -195,6 +202,10 @@ class MyAudioHandler extends BaseAudioHandler {
 
   Future<void> playSongs(List<SongModel> songs, int initialIndex) async {
     if (songs.isEmpty) return;
+
+    final completer = Completer<void>();
+    mediaItem.first.then((_) => completer.complete());
+
     await _playlist.clear();
     
     final mediaItems = songs.map(_songToMediaItem).toList();
@@ -203,6 +214,8 @@ class MyAudioHandler extends BaseAudioHandler {
     
     await _player.setAudioSource(_playlist, initialIndex: initialIndex);
     play();
+
+    await completer.future;
   }
 
   Future<void> scan() async {

@@ -9,10 +9,12 @@ import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:marquee/marquee.dart';
 import 'package:raag_music/services/favorites_service.dart';
+import 'package:raag_music/services/lyrics_service.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/audio_handler.dart';
+import 'lyrics_screen.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
@@ -24,6 +26,7 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> {
   final _audioHandler = GetIt.instance<AudioHandler>() as MyAudioHandler;
   final FavoritesService _favoritesService = FavoritesService();
+  final LyricsService _lyricsService = LyricsService();
   late AudioPlayer _audioPlayer;
   late PageController _pageController;
   late SharedPreferences _prefs;
@@ -279,63 +282,77 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                       Expanded(
                         child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    "PLAYING FROM",
-                                    style: TextStyle(
-                                        color: Colors.white.withOpacity(0.6),
-                                        fontSize: 12),
-                                  ),
-                                  Text(
-                                    mediaItem?.album ?? 'Unknown Album',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              )
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "PLAYING FROM",
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6),
+                                  fontSize: 12),
+                            ),
+                            Text(
+                              mediaItem?.album ?? 'Unknown Album',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              if (mediaItem != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => LyricsScreen(
+                                      songId: int.parse(mediaItem.id),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                             icon: const Icon(Icons.lyrics, color: Colors.white),
                           ),
                           if (mediaItem != null)
-                          SongOptionsMenu(song: SongModel({
-                            '_id': int.parse(mediaItem.id),
-                            'title': mediaItem.title,
-                            'artist': mediaItem.artist,
-                            'album': mediaItem.album,
-                            'duration': mediaItem.duration?.inMilliseconds,
-                            '_uri': mediaItem.extras!['url'],
-                          })),
+                            SongOptionsMenu(song: SongModel({
+                              '_id': int.parse(mediaItem.id),
+                              'title': mediaItem.title,
+                              'artist': mediaItem.artist,
+                              'album': mediaItem.album,
+                              'duration': mediaItem.duration?.inMilliseconds,
+                              '_uri': mediaItem.extras!['url'],
+                            })),
                         ],
                       ),
                     ],
                   ),
                   SizedBox(height: scrSize.height * 0.02),
-                  _gestureVolume ? RawGestureDetector(
-                    gestures: {
-                      VerticalDragGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<
-                              VerticalDragGestureRecognizer>(
-                        () => VerticalDragGestureRecognizer(),
-                        (instance) {
-                          instance.onUpdate = (details) {
-                            final newVolume = (_audioPlayer.volume -
-                                    details.delta.dy / 200)
-                                .clamp(0.0, 1.0);
-                            _audioPlayer.setVolume(newVolume);
-                            _showVolumeSlider();
-                          };
-                        },
-                      ),
-                    },
-                    child: buildPlayerControls(scrSize, mediaItem),
-                  ) : buildPlayerControls(scrSize, mediaItem),
-                   Expanded(
+                  _gestureVolume
+                      ? RawGestureDetector(
+                          gestures: {
+                            VerticalDragGestureRecognizer:
+                                GestureRecognizerFactoryWithHandlers<
+                                    VerticalDragGestureRecognizer>(
+                              () => VerticalDragGestureRecognizer(),
+                              (instance) {
+                                instance.onUpdate = (details) {
+                                  final newVolume = (_audioPlayer.volume -
+                                          details.delta.dy / 200)
+                                      .clamp(0.0, 1.0);
+                                  _audioPlayer.setVolume(newVolume);
+                                  _showVolumeSlider();
+                                };
+                              },
+                            ),
+                          },
+                          child: buildPlayerControls(scrSize, mediaItem),
+                        )
+                      : buildPlayerControls(scrSize, mediaItem),
+                  Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
@@ -391,7 +408,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                  
                                     ),
                                   ),
                                 ),
@@ -421,7 +437,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       onChanged: (value) {
                                         _audioHandler.seek(Duration(milliseconds: value.toInt()));
                                       },
-                                      activeColor: Theme.of(context).colorScheme.secondary,
+                                      activeColor:
+                                          Theme.of(context).colorScheme.secondary,
                                       inactiveColor: Colors.grey,
                                     ),
                                     Padding(
