@@ -27,21 +27,29 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SongModel> _favoriteSongs = [];
   List<SongModel> _recentlyPlayedSongs = [];
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late Future<List<SongModel>> _songsFuture;
 
   @override
   void initState() {
     super.initState();
-    _checkAndRequestPermissions();
+    _songsFuture = _checkAndRequestPermissions();
   }
 
-  void _checkAndRequestPermissions() async {
+  Future<List<SongModel>> _checkAndRequestPermissions() async {
     final hasPermission = await _audioQuery.checkAndRequest(
       retryRequest: true,
     );
     if (hasPermission) {
       _loadFavorites();
       _loadRecentlyPlayed();
+      return _audioQuery.querySongs(
+        sortType: SongSortType.TITLE,
+        orderType: OrderType.DESC_OR_GREATER,
+        uriType: UriType.EXTERNAL,
+        ignoreCase: true,
+      );
     }
+    return [];
   }
 
   void _loadFavorites() async {
@@ -112,12 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         body: FutureBuilder<List<SongModel>>(
-          future: _audioQuery.querySongs(
-            sortType: SongSortType.TITLE,
-            orderType: OrderType.DESC_OR_GREATER,
-            uriType: UriType.EXTERNAL,
-            ignoreCase: true,
-          ),
+          future: _songsFuture,
           builder: (context, item) {
             if (item.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
