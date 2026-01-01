@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:raag_music/locals/language_provider.dart';
+import 'package:raag_music/locals/string_extension.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -43,9 +46,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final languageProvider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text('settings'.tr),
       ),
       body: ListView(
         children: [
@@ -58,6 +62,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Stop Music on App Close'),
             value: _stopOnClose,
             onChanged: _setStopOnClose,
+          ),
+          ListTile(
+            title: Text('language'.tr),
+            trailing: DropdownButton<String>(
+              value: languageProvider.appLocale.languageCode,
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  languageProvider.changeLanguage(Locale(newValue));
+                  _prefs.setString('languageCode', newValue);
+                }
+              },
+              items: const [
+                DropdownMenuItem(
+                  value: 'en',
+                  child: Text('English'),
+                ),
+                DropdownMenuItem(
+                  value: 'hi',
+                  child: Text('हिंदी'),
+                ),
+                DropdownMenuItem(
+                  value: 'ur',
+                  child: Text('اردو'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
