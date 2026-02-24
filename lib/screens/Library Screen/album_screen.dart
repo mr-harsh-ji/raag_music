@@ -4,6 +4,7 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:get_it/get_it.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
+import '../../locals/string_extension.dart';
 import '../player_screen.dart';
 
 class AlbumScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
         title: Text(widget.album),
       ),
       body: _albumSongs.isEmpty
-          ? const Center(child: Text('No songs found in this album.'))
+          ? Center(child: Text('no_songs_in_album'.tr))
           : ListView.builder(
               itemCount: _albumSongs.length,
               itemBuilder: (context, index) {
@@ -52,7 +53,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                     nullArtworkWidget: const Icon(Icons.music_note),
                   ),
                   title: Text(song.title),
-                  subtitle: Text(song.artist ?? 'Unknown Artist'),
+                  subtitle: Text(song.artist ?? 'unknown_artist'.tr),
                   trailing: SongOptionsMenu(song: song),
                   onTap: () {
                     _audioHandler.playSongs(_albumSongs, index);

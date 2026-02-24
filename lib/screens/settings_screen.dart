@@ -54,12 +54,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         children: [
           SwitchListTile(
-            title: const Text('Gesture Volume'),
+            title: Text('gesture_volume'.tr),
             value: _gestureVolume,
             onChanged: _setGestureVolume,
           ),
           SwitchListTile(
-            title: const Text('Stop Music on App Close'),
+            title: Text('stop_music_on_app_close'.tr),
             value: _stopOnClose,
             onChanged: _setStopOnClose,
           ),

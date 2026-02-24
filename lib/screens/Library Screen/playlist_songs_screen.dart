@@ -6,6 +6,7 @@ import 'package:raag_music/models/playlist_model.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/playlist_service.dart';
 
+import '../../locals/string_extension.dart';
 import '../player_screen.dart';
 import 'all_songs_screen.dart';
 
@@ -53,7 +54,7 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => AllSongsScreen(
-          title: 'Add Songs to ${widget.playlist.name}',
+          title: 'add_songs_to ${widget.playlist.name}'.tr,
           isSelectionMode: true,
         ),
       ),
@@ -106,7 +107,7 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
           actions: [
             TextButton(
               onPressed: _playAll,
-              child: Text('Play All', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
+              child: Text('play_all'.tr, style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
             ),
             IconButton(
               icon: Icon(Icons.add, color: Theme.of(context).iconTheme.color),
@@ -116,7 +117,7 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
         ),
         body: _playlistSongs.isEmpty
             ? Center(
-                child: Text('No songs in this playlist.',
+                child: Text('no_songs_in_playlist'.tr,
                     style: Theme.of(context).textTheme.bodyLarge))
             : ListView.builder(
                 itemCount: _playlistSongs.length,
@@ -124,7 +125,7 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
                   final song = _playlistSongs[index];
                   return ListTile(
                     title: Text(song.title, style: Theme.of(context).textTheme.bodyLarge),
-                    subtitle: Text(song.artist ?? 'Unknown Artist', style: Theme.of(context).textTheme.bodySmall),
+                    subtitle: Text(song.artist ?? 'unknown_artist'.tr, style: Theme.of(context).textTheme.bodySmall),
                     trailing: IconButton(
                       icon: Icon(Icons.remove, color: Theme.of(context).iconTheme.color),
                       onPressed: () => _removeSongFromPlaylist(song.id),

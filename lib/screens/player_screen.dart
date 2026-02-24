@@ -9,10 +9,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:marquee/marquee.dart';
 import 'package:raag_music/services/favorites_service.dart';
-import 'package:raag_music/services/lyrics_service.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../locals/string_extension.dart';
 import '../services/audio_handler.dart';
 import 'lyrics_screen.dart';
 
@@ -26,7 +26,6 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> {
   final _audioHandler = GetIt.instance<AudioHandler>() as MyAudioHandler;
   final FavoritesService _favoritesService = FavoritesService();
-  final LyricsService _lyricsService = LyricsService();
   late AudioPlayer _audioPlayer;
   late PageController _pageController;
   late SharedPreferences _prefs;
@@ -54,8 +53,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _audioPlayer.sequenceStateStream.listen((sequenceState) {
       if (sequenceState == null) return;
       final currentIndex = sequenceState.currentIndex;
-      if (currentIndex != null &&
-          _pageController.hasClients &&
+      if (_pageController.hasClients &&
           currentIndex != _pageController.page?.round()) {
         _pageController.animateToPage(
           currentIndex,
@@ -135,7 +133,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Select Speed'),
+        title: Text('select_speed'.tr),
         backgroundColor: const Color(0xFF282828),
         titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 20),
         children: speeds
@@ -158,9 +156,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _showUpNextQueue(BuildContext context) {
     final queue = _audioHandler.queue.value;
-    if (queue.isEmpty) {
+    final currentIndex = _audioPlayer.currentIndex ?? 0;
+    if (queue.isEmpty || currentIndex >= queue.length - 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('no_up_next_songs'.tr)),
+      );
       return;
     }
+
+    final upNextQueue = queue.sublist(currentIndex + 1);
 
     showModalBottomSheet(
       context: context,
@@ -171,11 +175,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
       builder: (context) {
         return Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Text(
-                'Up Next',
-                style: TextStyle(
+                'up_next'.tr,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -184,9 +188,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
             Expanded(
               child: ReorderableListView.builder(
-                itemCount: queue.length,
+                itemCount: upNextQueue.length,
                 itemBuilder: (context, index) {
-                  final mediaItem = queue[index];
+                  final mediaItem = upNextQueue[index];
+                  final realIndex = queue.indexWhere((item) => item.id == mediaItem.id);
                   return ListTile(
                     key: ValueKey(mediaItem.id),
                     leading: QueryArtworkWidget(
@@ -203,18 +208,34 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      mediaItem.artist ?? 'Unknown Artist',
+                      mediaItem.artist ?? 'unknown_artist'.tr,
                       style: const TextStyle(color: Colors.white70),
                       overflow: TextOverflow.ellipsis,
                     ),
                     onTap: () {
-                      _audioHandler.skipToQueueItem(index);
+                      if (realIndex != -1) {
+                        _audioHandler.skipToQueueItem(realIndex);
+                      }
                       Navigator.pop(context);
                     },
                   );
                 },
                 onReorder: (oldIndex, newIndex) {
-                  _audioHandler.reorderPlaylist(oldIndex, newIndex);
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+
+                  final oldRealIndex = queue.indexWhere(
+                    (item) => item.id == upNextQueue[oldIndex].id,
+                  );
+
+                  final newRealIndex = queue.indexWhere(
+                    (item) => item.id == upNextQueue[newIndex].id,
+                  );
+
+                  if (oldRealIndex != -1 && newRealIndex != -1) {
+                    _audioHandler.reorderPlaylist(oldRealIndex, newRealIndex);
+                  }
                 },
               ),
             ),
@@ -285,13 +306,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "PLAYING FROM",
+                              "playing_from".tr,
                               style: TextStyle(
                                   color: Colors.white.withOpacity(0.6),
                                   fontSize: 12),
                             ),
                             Text(
-                              mediaItem?.album ?? 'Unknown Album',
+                              mediaItem?.album ?? 'unknown_album'.tr,
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold),
@@ -361,7 +382,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             height: 40,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: _buildMarquee(
-                              mediaItem?.title ?? "Loading...",
+                              mediaItem?.title ?? "loading".tr,
                               const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -373,7 +394,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             height: 25,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: _buildMarquee(
-                              mediaItem?.artist ?? "Unknown Artist",
+                              mediaItem?.artist ?? "unknown_artist".tr,
                               const TextStyle(
                                 fontSize: 18,
                                 color: Colors.white,
@@ -489,7 +510,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                           .showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            "Shuffle ${enable ? "ON" : "OFF"}",
+                                            "Shuffle ${enable ? "on".tr : "off".tr}",
                                           ),
                                           duration: const Duration(seconds: 1),
                                         ),
@@ -548,7 +569,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            "Repeat ${newMode != LoopMode.off ? "ON" : "OFF"}",
+                                            "Repeat ${newMode != LoopMode.off ? "on".tr : "off".tr}".tr,
                                           ),
                                           duration: const Duration(seconds: 1),
                                         ),
@@ -569,7 +590,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               ),
                               height: scrSize.height * 0.08,
                               width: scrSize.width * 1,
-                              child: const Column(
+                              child: Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
@@ -578,7 +599,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                     color: Colors.white,
                                   ),
                                   Text(
-                                    "Up Next",
+                                    "up_next".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,

@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:raag_music/screens/splash.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -69,7 +70,7 @@ class _MyAppState extends State<MyApp> {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const BottomNavigationScreen(),
+        home: const Splash(),
       );
     });
   }

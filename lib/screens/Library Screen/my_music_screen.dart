@@ -3,6 +3,8 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/helpers/path_helper.dart';
 import 'package:raag_music/screens/Library%20Screen/all_songs_screen.dart';
 
+import '../../locals/string_extension.dart';
+
 class MyMusicScreen extends StatefulWidget {
   const MyMusicScreen({super.key});
 
@@ -51,7 +53,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('My Music', style: Theme.of(context).textTheme.titleLarge),
+        title: Text('my_music'.tr, style: Theme.of(context).textTheme.titleLarge),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -79,7 +81,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> {
                   return ListTile(
                     leading: Icon(Icons.folder, color: Theme.of(context).iconTheme.color, size: 40),
                     title: Text(folderName, style: Theme.of(context).textTheme.bodyLarge),
-                    subtitle: Text('${songsInFolder.length} songs', style: Theme.of(context).textTheme.bodySmall),
+                    subtitle: Text('${songsInFolder.length} songs'.tr, style: Theme.of(context).textTheme.bodySmall),
                     onTap: () {
                       Navigator.push(
                         context,

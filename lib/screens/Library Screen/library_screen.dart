@@ -4,9 +4,9 @@ import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/recently_played_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:raag_music/widgets/my_drawer.dart';
 
+import '../../locals/string_extension.dart';
 import 'all_songs_screen.dart';
 import 'my_music_screen.dart';
 import '../player_screen.dart';
@@ -25,13 +25,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final _audioHandler = GetIt.instance<AudioHandler>() as MyAudioHandler;
   final RecentlyPlayedService _recentlyPlayedService = RecentlyPlayedService();
   List<SongModel> _recentlyPlayedSongs = [];
-  String _userName = "";
 
   @override
   void initState() {
     super.initState();
     _loadRecentlyPlayed();
-    _loadUserName();
   }
 
   void _loadRecentlyPlayed() async {
@@ -52,12 +50,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  void _loadUserName() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _userName = prefs.getString('userName') ?? "";
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +84,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               size: 32,
             ),
           ),
-          title: Text("Library", style: Theme.of(context).textTheme.titleLarge),
+          title: Text("library".tr, style: Theme.of(context).textTheme.titleLarge),
           centerTitle: true,
         ),
         body: Padding(
@@ -101,7 +93,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             children: [
               LibraryItem(
                   icon: Icons.queue_music,
-                  text: 'Now Playing',
+                  text: 'now_playing'.tr,
                   onTap: () {
                     final mediaItem = _audioHandler.mediaItem.value;
                     if (mediaItem != null) {
@@ -110,26 +102,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           MaterialPageRoute(
                               builder: (context) => const PlayerScreen()));
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('No song is currently playing.'),
+                      ScaffoldMessenger.of(context).showSnackBar( SnackBar(
+                        content: Text('no_song_playing'.tr),
                       ));
                     }
                   }),
               LibraryItem(
                   icon: Icons.history,
-                  text: 'Last Session',
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AllSongsScreen(songs: _recentlyPlayedSongs, title: "Last Session"))),
+                  text: 'last_session'.tr,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AllSongsScreen(songs: _recentlyPlayedSongs, title: 'last_session'.tr))),
               ),
               LibraryItem(
                   icon: Icons.favorite,
-                  text: 'Favorites',
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AllSongsScreen(isFavorites: true, title: "Favorites"))),
+                  text: 'favorites'.tr,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AllSongsScreen(isFavorites: true, title: 'favorites'.tr))),
               ),
               LibraryItem(
                   icon: Icons.music_note,
-                  text: 'My Music',
+                  text: 'my_music'.tr,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyMusicScreen()))),
-              LibraryItem(icon: Icons.playlist_play, text: 'Playlists', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaylistsScreen()))),
+              LibraryItem(icon: Icons.playlist_play, text: 'playlists'.tr, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaylistsScreen()))),
             ], 
           ),
         ),

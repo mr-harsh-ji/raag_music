@@ -4,7 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/screens/player_screen.dart';
 
-import '../services/audio_handler.dart';
+import '../locals/string_extension.dart';
 import 'Library Screen/library_screen.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
@@ -41,18 +41,18 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
                 _currentIndex = index;
               });
             },
-            items: const [
+            items: [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home),
-                label: 'Home',
+                label: 'home'.tr,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.search),
-                label: 'Search',
+                label: 'search'.tr,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.library_music),
-                label: 'Library',
+                label: 'library'.tr,
               ),
             ],
           ),
@@ -118,7 +118,7 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
                         ),
                       ),
                       Text(
-                        mediaItem.artist ?? 'Unknown Artist',
+                        mediaItem.artist ?? 'unknown_artist'.tr,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

@@ -6,6 +6,7 @@ import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/widgets/my_drawer.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
 
+import '../locals/string_extension.dart';
 import 'Library Screen/all_songs_screen.dart';
 import 'player_screen.dart';
 
@@ -108,7 +109,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             focusNode: _searchFocusNode,
             style: Theme.of(context).textTheme.bodyLarge,
             decoration: InputDecoration(
-              hintText: "Search for songs, artists, albums...",
+              hintText: "search_hint".tr,
               hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               border: InputBorder.none,
               suffixIcon: _isSearching
@@ -129,9 +130,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                   controller: _tabController,
                   labelColor: Theme.of(context).colorScheme.secondary,
                   unselectedLabelColor: Colors.grey,
-                  tabs: const [
-                    Tab(text: "Albums",),
-                    Tab(text: "Artists"),
+                  tabs: [
+                    Tab(text: "albums".tr,),
+                    Tab(text: "artists".tr),
                   ],
                 ),
         ),
@@ -147,7 +148,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
     if (_filteredSongs.isEmpty) {
       return Center(
-        child: Text("No results found.", style: Theme.of(context).textTheme.bodyLarge),
+        child: Text("no_results_found".tr, style: Theme.of(context).textTheme.bodyLarge),
       );
     }
 
@@ -162,7 +163,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             nullArtworkWidget: Icon(Icons.music_note, color: Theme.of(context).iconTheme.color),
           ),
           title: Text(song.title, style: Theme.of(context).textTheme.bodyLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(song.artist ?? "Unknown Artist", style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(song.artist ?? "unknown_artist".tr, style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: SongOptionsMenu(song: song),
           onTap: () async {
             await _audioHandler.playSongs(_filteredSongs, index);
@@ -201,7 +202,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         }
         final albums = item.data;
         if (albums == null || albums.isEmpty) {
-          return Center(child: Text("No Albums Found", style: Theme.of(context).textTheme.bodyLarge));
+          return Center(child: Text("no_albums_found".tr, style: Theme.of(context).textTheme.bodyLarge));
         }
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -252,7 +253,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                     Padding(
                       padding: const EdgeInsets.only(left: 4.0),
                       child: Text(
-                        album.artist ?? "Unknown Artist",
+                        album.artist ?? "unknown_artist".tr,
                         style: Theme.of(context).textTheme.bodySmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -285,7 +286,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         }
         final artists = item.data;
         if (artists == null || artists.isEmpty) {
-          return Center(child: Text("No Artists Found", style: Theme.of(context).textTheme.bodyLarge));
+          return Center(child: Text("no_artists_found".tr, style: Theme.of(context).textTheme.bodyLarge));
         }
         return ListView.builder(
           itemCount: artists.length,
@@ -319,7 +320,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(
-                "${artist.numberOfAlbums} Albums | ${artist.numberOfTracks} Songs",
+                "${artist.numberOfAlbums} albums | ${artist.numberOfTracks} songs".tr,
                 style: Theme.of(context).textTheme.bodySmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

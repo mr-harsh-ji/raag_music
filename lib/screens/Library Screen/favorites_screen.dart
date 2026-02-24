@@ -6,6 +6,7 @@ import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/favorites_service.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
 
+import '../../locals/string_extension.dart';
 import '../player_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -82,19 +83,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Text('Favorites', style: Theme.of(context).textTheme.titleLarge),
+          title: Text('favorites'.tr, style: Theme.of(context).textTheme.titleLarge),
           centerTitle: true,
           actions: [
             TextButton(
               onPressed: _playAll,
-              child: Text('Play All', style: TextStyle(color: Theme.of(context).primaryColor)),
+              child: Text('play_all'.tr, style: TextStyle(color: Theme.of(context).primaryColor)),
             )
           ],
         ),
         body: _favoriteSongs.isEmpty
             ? Center(
                 child: Text(
-                  'No favorite songs yet.',
+                  'no_favorite_songs_yet'.tr,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               )
@@ -118,7 +119,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       maxLines: 1,
                     ),
                     subtitle: Text(
-                      song.artist ?? 'Unknown Artist',
+                      song.artist ?? 'unknown_artist'.tr,
                       style: Theme.of(context).textTheme.bodySmall,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,

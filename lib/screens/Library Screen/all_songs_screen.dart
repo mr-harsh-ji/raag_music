@@ -6,18 +6,19 @@ import 'package:raag_music/services/favorites_service.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/widgets/song_options_menu.dart';
 
+import '../../locals/string_extension.dart';
 import '../player_screen.dart';
 
 class AllSongsScreen extends StatefulWidget {
   final List<SongModel>? songs;
-  final String title;
+  final String title; // this is now a KEY
   final bool isFavorites;
   final bool isSelectionMode;
 
   const AllSongsScreen({
     super.key,
     this.songs,
-    this.title = "All Songs",
+    this.title = "all_songs",
     this.isFavorites = false,
     this.isSelectionMode = false,
   });
@@ -47,41 +48,21 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
   }
 
   Future<void> _loadAllSongs() async {
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
+    if (mounted) setState(() => _isLoading = true);
     _songs = await _audioQuery.querySongs();
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _loadFavoriteSongs() async {
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
+    if (mounted) setState(() => _isLoading = true);
+
     final favoriteIds = await _favoritesService.getFavoriteSongIds();
     if (favoriteIds.isNotEmpty) {
       final allSongs = await _audioQuery.querySongs();
-      final favoriteSongs =
-          allSongs.where((song) => favoriteIds.contains(song.id)).toList();
-      if (mounted) {
-        setState(() {
-          _songs = favoriteSongs;
-        });
-      }
+      _songs = allSongs.where((s) => favoriteIds.contains(s.id)).toList();
     }
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
   void _playAll() async {
@@ -90,18 +71,9 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
       if (!mounted) return;
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => const PlayerScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const PlayerScreen()),
       );
     }
-  }
-
-  void _removeFavorite(int songId) async {
-    await _favoritesService.toggleFavorite(songId);
-    setState(() {
-      _songs.removeWhere((song) => song.id == songId);
-    });
   }
 
   @override
@@ -111,90 +83,118 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          widget.title.tr,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         actions: [
           if (!widget.isSelectionMode)
             TextButton(
               onPressed: _playAll,
-              child: Text('Play All', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
+              child: Text(
+                "play_all".tr,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
             ),
           if (widget.isSelectionMode)
             TextButton(
-              onPressed: () => Navigator.pop(context, _selectedSongIds.toList()),
-              child: Text('Done', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
-            )
+              onPressed: () =>
+                  Navigator.pop(context, _selectedSongIds.toList()),
+              child: Text(
+                "done".tr,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _songs.isEmpty
-              ? Center(
-                  child: Text(
-                    'No ${widget.title.toLowerCase()} songs found.',
-                    style: Theme.of(context).textTheme.bodyLarge,
+          ? Center(
+        child: Text(
+          "no_items_found"
+              .tr
+              .replaceAll(
+            "{title}",
+            widget.title.tr,
+          ),
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      )
+          : ListView.builder(
+        itemCount: _songs.length,
+        itemBuilder: (context, index) {
+          final song = _songs[index];
+          final isSelected =
+          _selectedSongIds.contains(song.id);
+
+          return ListTile(
+            leading: QueryArtworkWidget(
+              id: song.id,
+              type: ArtworkType.AUDIO,
+              artworkBorder:
+              BorderRadius.circular(4),
+              nullArtworkWidget: Icon(
+                Icons.music_note,
+                color: Theme.of(context)
+                    .iconTheme
+                    .color,
+              ),
+            ),
+            title: Text(
+              song.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              song.artist ??
+                  "unknown_artist".tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: widget.isSelectionMode
+                ? Checkbox(
+              value: isSelected,
+              onChanged: (v) {
+                setState(() {
+                  v!
+                      ? _selectedSongIds
+                      .add(song.id)
+                      : _selectedSongIds
+                      .remove(song.id);
+                });
+              },
+            )
+                : SongOptionsMenu(song: song),
+            onTap: () async {
+              if (widget.isSelectionMode) {
+                setState(() {
+                  isSelected
+                      ? _selectedSongIds
+                      .remove(song.id)
+                      : _selectedSongIds
+                      .add(song.id);
+                });
+              } else {
+                await _audioHandler.playSongs(
+                    _songs, index);
+                if (!mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                    const PlayerScreen(),
                   ),
-                )
-              : ListView.builder(
-                  itemCount: _songs.length,
-                  itemBuilder: (context, index) {
-                    final song = _songs[index];
-                    final isSelected = _selectedSongIds.contains(song.id);
-                    return ListTile(
-                      leading: QueryArtworkWidget(
-                        id: song.id,
-                        type: ArtworkType.AUDIO,
-                        artworkBorder: BorderRadius.circular(4.0),
-                        nullArtworkWidget: Icon(Icons.music_note, color: Theme.of(context).iconTheme.color),
-                      ),
-                      title: Text(
-                        song.title,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        song.artist ?? "Unknown Artist",
-                        style: Theme.of(context).textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: widget.isSelectionMode
-                          ? Checkbox(
-                              value: isSelected,
-                              onChanged: (value) {
-                                setState(() {
-                                  if (value!) {
-                                    _selectedSongIds.add(song.id);
-                                  } else {
-                                    _selectedSongIds.remove(song.id);
-                                  }
-                                });
-                              },
-                            )
-                          : SongOptionsMenu(song: song),
-                      onTap: () async {
-                        if (widget.isSelectionMode) {
-                          setState(() {
-                            if (isSelected) {
-                              _selectedSongIds.remove(song.id);
-                            } else {
-                              _selectedSongIds.add(song.id);
-                            }
-                          });
-                        } else {
-                          await _audioHandler.playSongs(_songs, index);
-                          if (!mounted) return;
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PlayerScreen(),
-                            ),
-                          );
-                        }
-                      },
-                    );
-                  },
-                ),
+                );
+              }
+            },
+          );
+        },
+      ),
     );
   }
 }

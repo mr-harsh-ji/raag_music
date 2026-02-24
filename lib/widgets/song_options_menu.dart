@@ -2,93 +2,119 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:raag_music/models/playlist_model.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/favorites_service.dart';
 import 'package:raag_music/services/playlist_service.dart';
 import 'package:raag_music/screens/Library%20Screen/album_screen.dart';
+import 'package:raag_music/locals/string_extension.dart';
 
-class SongOptionsMenu extends StatelessWidget {
+enum SongOption {
+  playNext,
+  addToQueue,
+  addToPlaylist,
+  toggleFavorite,
+  viewAlbum,
+}
+
+class SongOptionsMenu extends StatefulWidget {
   final SongModel song;
 
   const SongOptionsMenu({super.key, required this.song});
 
   @override
+  State<SongOptionsMenu> createState() => _SongOptionsMenuState();
+}
+
+class _SongOptionsMenuState extends State<SongOptionsMenu> {
+  final FavoritesService _favoritesService = FavoritesService();
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavoriteStatus();
+  }
+
+  void _checkFavoriteStatus() async {
+    final isFav = await _favoritesService.isFavorite(widget.song.id);
+    if (mounted) {
+      setState(() {
+        _isFavorite = isFav;
+      });
+    }
+  }
+
+  String _getMenuTitle(SongOption option) {
+    switch (option) {
+      case SongOption.playNext:
+        return 'Play next';
+      case SongOption.addToQueue:
+        return 'Add to queue';
+      case SongOption.addToPlaylist:
+        return 'Add to playlist';
+      case SongOption.toggleFavorite:
+        return _isFavorite ? 'Remove from favorites' : 'Add to favorites';
+      case SongOption.viewAlbum:
+        return 'View album';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final audioHandler = GetIt.instance<AudioHandler>() as MyAudioHandler;
-    final favoritesService = FavoritesService();
     final playlistService = PlaylistService();
 
-    return PopupMenuButton<String>(
-      onSelected: (value) async {
-        switch (value) {
-          case 'play_next':
-            await audioHandler.playNext(song);
+    return PopupMenuButton<SongOption>(
+      onSelected: (SongOption result) async {
+        switch (result) {
+          case SongOption.playNext:
+            await audioHandler.playNext(widget.song);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Song will play next')),
             );
             break;
-          case 'add_to_queue':
-            await audioHandler.addToQueue(song);
+          case SongOption.addToQueue:
+            await audioHandler.addToQueue(widget.song);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Song added to queue')),
             );
             break;
-          case 'add_to_playlist':
+          case SongOption.addToPlaylist:
             _showAddToPlaylistDialog(context, playlistService);
             break;
-          case 'toggle_favorite':
-            await favoritesService.toggleFavorite(song.id);
+          case SongOption.toggleFavorite:
+            await _favoritesService.toggleFavorite(widget.song.id);
+            setState(() {
+              _isFavorite = !_isFavorite;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(await favoritesService.isFavorite(song.id)
+                content: Text(_isFavorite
                     ? 'Added to favorites'
                     : 'Removed from favorites'),
               ),
             );
             break;
-          case 'view_album':
+          case SongOption.viewAlbum:
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => AlbumScreen(album: song.album ?? 'Unknown Album'),
+                builder: (context) =>
+                    AlbumScreen(album: widget.song.album ?? "Unknown Album"),
               ),
             );
             break;
         }
       },
-      itemBuilder: (BuildContext context) {
-        return {
-          'play_next',
-          'add_to_queue',
-          'add_to_playlist',
-          'toggle_favorite',
-          'view_album',
-        }.map((String choice) {
-          return PopupMenuItem<String>(
-            value: choice,
-            child: Text(_getMenuTitle(choice, favoritesService)),
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<SongOption>>[
+        ...SongOption.values.map((option) {
+          return PopupMenuItem<SongOption>(
+            value: option,
+            child: Text(_getMenuTitle(option)),
           );
-        }).toList();
-      },
+        })
+      ],
     );
-  }
-
-  String _getMenuTitle(String choice, FavoritesService favoritesService) {
-    switch (choice) {
-      case 'play_next':
-        return 'Play next';
-      case 'add_to_queue':
-        return 'Add to queue';
-      case 'add_to_playlist':
-        return 'Add to playlist';
-      case 'toggle_favorite':
-        return 'Toggle favorite';
-      case 'view_album':
-        return 'View album';
-      default:
-        return '';
-    }
   }
 
   void _showAddToPlaylistDialog(
@@ -100,8 +126,8 @@ class SongOptionsMenu extends StatelessWidget {
         return AlertDialog(
           title: const Text('Add to Playlist'),
           content: playlists.isEmpty
-              ? const Text('No playlists available. Create one first!')
-              : SizedBox(
+              ? const Text("No playlist found, create one in the library tab")
+              : Container(
                   width: double.maxFinite,
                   child: ListView.builder(
                     itemCount: playlists.length,
@@ -112,11 +138,12 @@ class SongOptionsMenu extends StatelessWidget {
                         title: Text(playlist.name),
                         onTap: () async {
                           await playlistService.addSongToPlaylist(
-                              playlist.name, song.id);
+                              playlist.name, widget.song.id);
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Added to ${playlist.name}'),
+                              content: Text(
+                                  'Added to playlist: ${playlist.name}'),
                             ),
                           );
                         },

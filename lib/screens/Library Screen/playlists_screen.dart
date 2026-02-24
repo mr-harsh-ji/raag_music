@@ -3,6 +3,8 @@ import 'package:raag_music/models/playlist_model.dart';
 import 'package:raag_music/services/playlist_service.dart';
 import 'package:raag_music/screens/Library%20Screen/playlist_songs_screen.dart';
 
+import '../../locals/string_extension.dart';
+
 class PlaylistsScreen extends StatefulWidget {
   const PlaylistsScreen({super.key});
 
@@ -34,12 +36,12 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
         final TextEditingController controller = TextEditingController();
         return AlertDialog(
           backgroundColor: Theme.of(context).cardColor,
-          title: Text('Create Playlist', style: Theme.of(context).textTheme.titleLarge),
+          title: Text('create_playlist'.tr, style: Theme.of(context).textTheme.titleLarge),
           content: TextField(
             controller: controller,
             style: Theme.of(context).textTheme.bodyMedium,
             decoration: InputDecoration(
-              hintText: 'Playlist Name',
+              hintText: 'playlist_name'.tr,
               hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(color: Theme.of(context).primaryColor),
@@ -52,7 +54,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Color(0xffF8AB02))),
+              child: Text('cancel'.tr, style: TextStyle(color: Color(0xffF8AB02))),
             ),
             TextButton(
               onPressed: () {
@@ -65,7 +67,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                   });
                 }
               },
-              child: Text('Create', style: TextStyle(color: Color(0xffF8AB02))),
+              child: Text('create'.tr, style: TextStyle(color: Color(0xffF8AB02))),
             ),
           ],
         );
@@ -100,12 +102,12 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Text('Playlists', style: Theme.of(context).textTheme.titleLarge),
+          title: Text('playlists'.tr, style: Theme.of(context).textTheme.titleLarge),
           centerTitle: true,
         ),
         body: _playlists.isEmpty
             ? Center(
-                child: Text('No playlists found.',
+                child: Text('no_playlists_found'.tr,
                     style: Theme.of(context).textTheme.bodyLarge))
             : ListView.builder(
                 itemCount: _playlists.length,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../locals/string_extension.dart';
+
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
@@ -42,8 +44,8 @@ class _AboutScreenState extends State<AboutScreen> {
                     height: 120,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Welcome to\nRaag Music',
+                   Text(
+                    'welcome_to_raag'.tr,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -52,25 +54,8 @@ class _AboutScreenState extends State<AboutScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    '''
-Raag Music ek fast, simple aur powerful offline music player hai, jo aapko smooth aur distraction-free music experience deta hai.
-
-Is app ko performance aur simplicity ko dhyaan me rakhkar design kiya gaya hai, taaki aap apne favorite songs bina kisi rukawat ke enjoy kar saken.
-
-Features:
-• High-quality offline music playback
-• Smooth seek bar & playback controls
-• Shuffle & repeat modes
-• Favorite songs support
-• Playback speed control
-• Clean & modern user interface  
-
-Raag Music un music lovers ke liye banaya gaya hai jo speed, simplicity aur apne music par full control chahte hain.
-
-👨‍💻 Developer
-Harsh Kumar
-''',
+                  Text(
+                    'about_raag_music'.tr,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 16,
@@ -80,7 +65,7 @@ Harsh Kumar
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    _version.isEmpty ? 'Loading version...' : 'Version $_version',
+                    _version.isEmpty ? 'loading_version'.tr : 'version $_version'.tr,
                     style: const TextStyle(
                       color: Colors.white38,
                       fontSize: 14,

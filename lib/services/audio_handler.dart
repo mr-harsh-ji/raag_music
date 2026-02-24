@@ -6,6 +6,8 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:raag_music/services/recently_played_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../locals/string_extension.dart';
+
 Future<AudioHandler> initAudioService() async {
   return await AudioService.init(
     builder: () => MyAudioHandler(),
@@ -143,9 +145,9 @@ class MyAudioHandler extends BaseAudioHandler {
   MediaItem _songToMediaItem(SongModel song) {
     return MediaItem(
         id: song.id.toString(),
-        album: song.album ?? "Unknown Album",
+        album: song.album ?? "unknown_album".tr,
         title: song.title,
-        artist: song.artist ?? "Unknown Artist",
+        artist: song.artist ?? "unknown_artist".tr,
         duration: Duration(milliseconds: song.duration ?? 0),
         artUri: song.id > 0 ? Uri.parse('content://media/external/audio/media/${song.id}/albumart') : null,
         extras: {'url': song.uri!},

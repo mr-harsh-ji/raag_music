@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../locals/string_extension.dart';
 import 'theme_provider.dart';
 
 class ThemePage extends StatelessWidget {
@@ -10,23 +11,23 @@ class ThemePage extends StatelessWidget {
     final theme = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Theme Settings")),
+      appBar: AppBar(title: Text("theme_settings".tr)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             colorTile(
-              title: "Primary Color",
+              title: "primary_color".tr,
               color: theme.primaryColor,
               onTap: () => theme.changePrimary(Colors.blue),
             ),
             colorTile(
-              title: "Accent Color",
+              title: "accent_color".tr,
               color: theme.accentColor,
               onTap: () => theme.changeAccent(Colors.green),
             ),
             colorTile(
-              title: "Text Color",
+              title: "text_color".tr,
               color: theme.textColor,
               onTap: () => theme.changeText(Colors.orange),
             ),

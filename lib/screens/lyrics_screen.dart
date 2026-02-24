@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:raag_music/services/lyrics_service.dart';
 
+import '../locals/string_extension.dart';
+
 class LyricsScreen extends StatefulWidget {
   final int songId;
 
@@ -42,7 +44,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lyrics'),
+        title: Text('lyrics'.tr),
         actions: [
           if (_isEditing)
             IconButton(
@@ -67,8 +69,8 @@ class _LyricsScreenState extends State<LyricsScreen> {
                 controller: _lyricsController,
                 maxLines: null,
                 expands: true,
-                decoration: const InputDecoration(
-                  hintText: 'Create your own lyrics',
+                decoration: InputDecoration(
+                  hintText: 'create_lyrics'.tr,
                   border: InputBorder.none,
                 ),
               ),
@@ -78,8 +80,8 @@ class _LyricsScreenState extends State<LyricsScreen> {
                   padding: const EdgeInsets.all(16.0),
                   child: Text(_lyrics!),
                 )
-              : const Center(
-                  child: Text('No lyrics found'),
+              : Center(
+                  child: Text('no_lyrics_found'.tr),
                 ),
     );
   }

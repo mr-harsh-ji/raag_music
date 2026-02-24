@@ -7,6 +7,7 @@ import 'package:raag_music/screens/Library%20Screen/playlists_screen.dart';
 import 'package:raag_music/screens/settings_screen.dart';
 import 'package:raag_music/services/audio_handler.dart';
 
+import '../locals/string_extension.dart';
 import '../screens/about_screen.dart';
 
 class MyDrawer extends StatelessWidget {
@@ -50,7 +51,7 @@ class MyDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.home),
-              title: const Text('Home'),
+              title: Text('home'.tr),
               onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -61,7 +62,7 @@ class MyDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.music_note),
-              title: const Text('My Music'),
+              title: Text('my_music'.tr),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -72,7 +73,7 @@ class MyDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.playlist_play),
-              title: const Text('Playlists'),
+              title: Text('playlists'.tr),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -83,7 +84,7 @@ class MyDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
+              title: Text('settings'.tr),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -94,18 +95,18 @@ class MyDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.scanner),
-              title: const Text('Scan Media'),
+              title: Text('scan_media'.tr),
               onTap: () async {
                 Navigator.pop(context);
                 await audioHandler.scan();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Media scan complete')),
+                  SnackBar(content: Text('media_scan_complete'.tr)),
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.info),
-              title: const Text('About'),
+              title: Text('about'.tr),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => AboutScreen(),));
               },

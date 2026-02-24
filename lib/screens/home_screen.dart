@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:raag_music/locals/string_extension.dart';
 import 'package:raag_music/services/favorites_service.dart';
 import 'package:raag_music/services/recently_played_service.dart';
 import 'package:raag_music/widgets/my_drawer.dart';
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final RecentlyPlayedService _recentlyPlayedService = RecentlyPlayedService();
   List<SongModel> _favoriteSongs = [];
   List<SongModel> _recentlyPlayedSongs = [];
+  List<SongModel> _lastAddedSongs = [];
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late Future<List<SongModel>> _songsFuture;
 
@@ -42,14 +44,28 @@ class _HomeScreenState extends State<HomeScreen> {
     if (hasPermission) {
       _loadFavorites();
       _loadRecentlyPlayed();
+      _loadLastAddedSongs();
       return _audioQuery.querySongs(
-        sortType: SongSortType.TITLE,
-        orderType: OrderType.DESC_OR_GREATER,
+        sortType: SongSortType.ALBUM,
         uriType: UriType.EXTERNAL,
         ignoreCase: true,
       );
     }
     return [];
+  }
+
+  Future<void> _loadLastAddedSongs() async {
+    final lastAdded = await _audioQuery.querySongs(
+      sortType: SongSortType.DATE_ADDED,
+      orderType: OrderType.DESC_OR_GREATER,
+      uriType: UriType.EXTERNAL,
+      ignoreCase: true,
+    );
+    if (mounted) {
+      setState(() {
+        _lastAddedSongs = lastAdded;
+      });
+    }
   }
 
   void _loadFavorites() async {
@@ -111,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          titleSpacing: 0,
           title: Text(
             "RaagMusic",
             style: TextStyle(
@@ -129,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (item.data == null || item.data!.isEmpty) {
               return Center(
                 child: Text(
-                  "No Songs Found",
+                  "no_Songs_Found".tr,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               );
@@ -144,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Quick picks",
+                      "quick_picks".tr,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 10),
@@ -218,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          song.artist ?? "Unknown Artist",
+                                          song.artist ?? "unknown_artist".tr,
                                           style: Theme.of(context).textTheme.bodySmall,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -239,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Recently played",
+                          "recently_played".tr,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         InkWell(
@@ -252,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                           child: Text(
-                            "See all",
+                            "see_all".tr,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
@@ -263,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 190,
                       child: _recentlyPlayedSongs.isEmpty 
                         ? Center(
-                          child: Text('No recently played songs.', style: Theme.of(context).textTheme.bodyLarge,),
+                          child: Text('no_recently_played_songs'.tr, style: Theme.of(context).textTheme.bodyLarge,),
                         )
                         : ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -329,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    song.artist ?? "Unknown Artist",
+                                    song.artist ?? "unknown_artist".tr,
                                     style: Theme.of(context).textTheme.bodySmall,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -346,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Favorites",
+                          "favorites".tr,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         InkWell(
@@ -354,15 +371,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const AllSongsScreen(
+                                builder: (context) => AllSongsScreen(
                                   isFavorites: true,
-                                  title: "Favorites",
+                                  title: "favorites".tr,
                                 ),
                               ),
                             );
                           },
                           child: Text(
-                            "See all",
+                            "see_all".tr,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
@@ -374,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _favoriteSongs.isEmpty
                           ? Center(
                               child: Text(
-                                'No favorite songs yet.',
+                                'no_favorite_songs_yet'.tr,
                                 style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             )
@@ -436,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          song.artist ?? "Unknown Artist",
+                                          song.artist ?? "unknown_artist".tr,
                                           style: Theme.of(context).textTheme.bodySmall,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -450,13 +467,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 15),
                     Text(
-                      "Last session",
+                      "last_added".tr,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 10),
                     SizedBox(
                       height: (70) * 3,
-                      child: GridView.builder(
+                      child: _lastAddedSongs.isEmpty
+                        ? Center(
+                            child: Text(
+                            'no_songs_found'.tr,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ))
+                        : GridView.builder(
                         scrollDirection: Axis.horizontal,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
@@ -465,13 +488,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisSpacing: 12,
                           mainAxisExtent: 320,
                         ),
-                        itemCount: songs.length > 9 ? 9 : songs.length,
+                        itemCount: _lastAddedSongs.length > 9 ? 9 : _lastAddedSongs.length,
                         itemBuilder: (context, index) {
-                          final song = songs[index];
+                          final song = _lastAddedSongs[index];
                           return GestureDetector(
                             onTap: () async {
                               await _audioHandler.playSongs(
-                                songs,
+                                _lastAddedSongs,
                                 index,
                               );
                               if (!mounted) return;
@@ -514,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           song.title,
@@ -524,7 +547,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          song.artist ?? "Unknown Artist",
+                                          song.artist ?? "unknown_artist".tr,
                                           style: Theme.of(context).textTheme.bodySmall,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
