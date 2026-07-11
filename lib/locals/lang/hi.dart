@@ -84,4 +84,10 @@ const Map<String, String> hi = {
   "toggle_favorite": "पसंदीदा बदलें",
   "view_album": "एल्बम देखें",
   "last_added": "हाल ही में जोड़े गए",
+  "no_up_next_songs": "अगला कोई गाना नहीं है",
+   "delete": "ऐप से हटाएं",
+  "remove_from_playlist": "प्लेलिस्ट से हटाएं",
+  "delete_confirm": "क्या आप वाकई इस गाने को ऐप से हटाना चाहते हैं? यह आपके डिवाइस पर बना रहेगा।",
+  "song_deleted": "गाना हटा दिया गया",
+  "song_removed": "प्लेलिस्ट से हटा दिया गया",
 };

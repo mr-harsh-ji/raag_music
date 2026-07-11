@@ -54,7 +54,13 @@ class _AlbumScreenState extends State<AlbumScreen> {
                   ),
                   title: Text(song.title),
                   subtitle: Text(song.artist ?? 'unknown_artist'.tr),
-                  trailing: SongOptionsMenu(song: song),
+                  trailing: SongOptionsMenu(
+                    song: song,
+                    onDeleted: () {
+                      _audioHandler.clearCache();
+                      _loadAlbumSongs();
+                    },
+                  ),
                   onTap: () {
                     _audioHandler.playSongs(_albumSongs, index);
                      Navigator.push(

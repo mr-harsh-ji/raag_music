@@ -20,16 +20,23 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
   int _currentIndex = 0;
   final _audioHandler = GetIt.instance<AudioHandler>();
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const SearchScreen(),
-    const LibraryScreen(),
-  ];
+  Widget _getSelectedScreen() {
+    switch (_currentIndex) {
+      case 0:
+        return const HomeScreen();
+      case 1:
+        return const SearchScreen();
+      case 2:
+        return const LibraryScreen();
+      default:
+        return const HomeScreen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: _getSelectedScreen(),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -92,6 +99,8 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
                   artworkWidth: 40,
                   artworkHeight: 40,
                   artworkBorder: BorderRadius.circular(4),
+                  artworkQuality: FilterQuality.low,
+                  size: 100,
                   nullArtworkWidget: Container(
                     width: 40,
                     height: 40,

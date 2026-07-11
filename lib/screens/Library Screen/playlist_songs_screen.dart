@@ -6,6 +6,7 @@ import 'package:raag_music/models/playlist_model.dart';
 import 'package:raag_music/services/audio_handler.dart';
 import 'package:raag_music/services/playlist_service.dart';
 
+import 'package:raag_music/widgets/song_options_menu.dart';
 import '../../locals/string_extension.dart';
 import '../player_screen.dart';
 import 'all_songs_screen.dart';
@@ -126,9 +127,13 @@ class _PlaylistSongsScreenState extends State<PlaylistSongsScreen> {
                   return ListTile(
                     title: Text(song.title, style: Theme.of(context).textTheme.bodyLarge),
                     subtitle: Text(song.artist ?? 'unknown_artist'.tr, style: Theme.of(context).textTheme.bodySmall),
-                    trailing: IconButton(
-                      icon: Icon(Icons.remove, color: Theme.of(context).iconTheme.color),
-                      onPressed: () => _removeSongFromPlaylist(song.id),
+                    trailing: SongOptionsMenu(
+                      song: song,
+                      playlistName: widget.playlist.name,
+                      onDeleted: () {
+                        _audioHandler.clearCache();
+                        _loadPlaylistSongs();
+                      },
                     ),
                     onTap: () async {
                       await _audioHandler.playSongs(_playlistSongs, index);

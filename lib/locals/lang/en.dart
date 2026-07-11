@@ -12,7 +12,7 @@ const Map<String, String> en = {
   "language": "Language",
   //start from here
   "no_Songs_Found": "No Songs Found",
-  "quick_picks": "Quick picks",
+  "quick_picks": "Quick Picks",
   "play": "Play",
   "pause": "Pause",
   "next": "Next",
@@ -84,4 +84,10 @@ const Map<String, String> en = {
   "toggle_favorite": "Toggle Favorite",
   "view_album": "View Album",
   "last_added": "Last Added",
+  "no_up_next_songs": "No Up Next songs",
+  "delete": "Remove from App",
+  "remove_from_playlist": "Remove from Playlist",
+  "delete_confirm": "Are you sure you want to remove this song from the app? It will still be on your device.",
+  "song_deleted": "Song deleted",
+  "song_removed": "Song removed from playlist",
 };

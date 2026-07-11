@@ -49,12 +49,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Future<void> _fetchAllSongs() async {
-    List<SongModel> songs = await _audioQuery.querySongs(
-      sortType: null,
-      orderType: OrderType.ASC_OR_SMALLER,
-      uriType: UriType.EXTERNAL,
-      ignoreCase: true,
-    );
+    List<SongModel> songs = await _audioHandler.fetchAllSongs();
     if (mounted) {
       setState(() {
         _allSongs = songs;
@@ -107,6 +102,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           title: TextField(
             controller: _searchController,
             focusNode: _searchFocusNode,
+            autofocus: false,
+            cursorColor: Theme.of(context).colorScheme.secondary,
             style: Theme.of(context).textTheme.bodyLarge,
             decoration: InputDecoration(
               hintText: "search_hint".tr,
@@ -160,12 +157,29 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           leading: QueryArtworkWidget(
             id: song.id,
             type: ArtworkType.AUDIO,
+            artworkQuality: FilterQuality.low,
+            size: 150,
             nullArtworkWidget: Icon(Icons.music_note, color: Theme.of(context).iconTheme.color),
           ),
           title: Text(song.title, style: Theme.of(context).textTheme.bodyLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(song.artist ?? "unknown_artist".tr, style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: SongOptionsMenu(song: song),
+          trailing: SongOptionsMenu(
+            song: song,
+            onDeleted: () {
+              _audioHandler.clearCache();
+              _fetchAllSongs();
+            },
+          ),
           onTap: () async {
+            final currentMediaItem = _audioHandler.mediaItem.value;
+            if (currentMediaItem != null && 
+                currentMediaItem.id == _filteredSongs[index].id.toString()) {
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const PlayerScreen())
+              );
+              return;
+            }
             await _audioHandler.playSongs(_filteredSongs, index);
             if (!mounted) return;
             Navigator.push(context, MaterialPageRoute(builder: (context) => const PlayerScreen()));
@@ -239,6 +253,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       type: ArtworkType.ALBUM,
                       artworkWidth: double.infinity,
                       artworkHeight: 150,
+                      artworkQuality: FilterQuality.low,
+                      size: 300,
                       nullArtworkWidget: Icon(Icons.album, color: Theme.of(context).iconTheme.color, size: 150),
                     ),
                     Padding(
@@ -311,6 +327,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               leading: QueryArtworkWidget(
                 id: artist.id,
                 type: ArtworkType.ARTIST,
+                artworkQuality: FilterQuality.low,
+                size: 150,
                 nullArtworkWidget: Icon(Icons.person, color: Theme.of(context).iconTheme.color),
               ),
               title: Text(

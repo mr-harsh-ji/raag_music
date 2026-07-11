@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SongModel> _favoriteSongs = [];
   List<SongModel> _recentlyPlayedSongs = [];
   List<SongModel> _lastAddedSongs = [];
+  List<SongModel> _quickPicksSongs = [];
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late Future<List<SongModel>> _songsFuture;
 
@@ -38,65 +39,49 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<List<SongModel>> _checkAndRequestPermissions() async {
-    final hasPermission = await _audioQuery.checkAndRequest(
-      retryRequest: true,
-    );
-    if (hasPermission) {
-      _loadFavorites();
-      _loadRecentlyPlayed();
-      _loadLastAddedSongs();
-      return _audioQuery.querySongs(
-        sortType: SongSortType.ALBUM,
-        uriType: UriType.EXTERNAL,
-        ignoreCase: true,
+    try {
+      final hasPermission = await _audioQuery.checkAndRequest(
+        retryRequest: true,
       );
+      
+      if (hasPermission) {
+        final allSongs = await _audioHandler.fetchAllSongs();
+        if (mounted) {
+          setState(() {
+            _lastAddedSongs = allSongs;
+            _quickPicksSongs = List.from(allSongs)..shuffle(); // Shuffle for discovery
+            _loadFavoritesFromList(allSongs);
+            _loadRecentlyPlayedFromList(allSongs);
+          });
+        }
+        return allSongs;
+      }
+    } catch (e) {
+      print("Permission Error: $e");
     }
     return [];
   }
 
-  Future<void> _loadLastAddedSongs() async {
-    final lastAdded = await _audioQuery.querySongs(
-      sortType: SongSortType.DATE_ADDED,
-      orderType: OrderType.DESC_OR_GREATER,
-      uriType: UriType.EXTERNAL,
-      ignoreCase: true,
-    );
-    if (mounted) {
+  void _loadFavoritesFromList(List<SongModel> allSongs) async {
+    final favoriteIds = await _favoritesService.getFavoriteSongIds();
+    if (favoriteIds.isNotEmpty && mounted) {
       setState(() {
-        _lastAddedSongs = lastAdded;
+        _favoriteSongs = allSongs.where((song) => favoriteIds.contains(song.id)).toList();
       });
     }
   }
 
-  void _loadFavorites() async {
-    final favoriteIds = await _favoritesService.getFavoriteSongIds();
-    if (favoriteIds.isNotEmpty) {
-      final allSongs = await _audioQuery.querySongs();
-      final favoriteSongs =
-          allSongs.where((song) => favoriteIds.contains(song.id)).toList();
-      if (mounted) {
-        setState(() {
-          _favoriteSongs = favoriteSongs;
-        });
-      }
-    }
-  }
-
-  void _loadRecentlyPlayed() async {
+  void _loadRecentlyPlayedFromList(List<SongModel> allSongs) async {
     final recentSongIds = await _recentlyPlayedService.getRecentSongs();
-    if (recentSongIds.isNotEmpty) {
-      final allSongs = await _audioQuery.querySongs();
-      final recentlyPlayedSongs = allSongs
-          .where((song) => recentSongIds.contains(song.id))
-          .toList()
-        ..sort((a, b) => recentSongIds
-            .indexOf(a.id)
-            .compareTo(recentSongIds.indexOf(b.id)));
-      if (mounted) {
-        setState(() {
-          _recentlyPlayedSongs = recentlyPlayedSongs;
-        });
-      }
+    if (recentSongIds.isNotEmpty && mounted) {
+      setState(() {
+        _recentlyPlayedSongs = allSongs
+            .where((song) => recentSongIds.contains(song.id))
+            .toList()
+          ..sort((a, b) => recentSongIds
+              .indexOf(a.id)
+              .compareTo(recentSongIds.indexOf(b.id)));
+      });
     }
   }
 
@@ -156,10 +141,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
             return SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.only(left: 12, right: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 10),
                     Text(
                       "quick_picks".tr,
                       style: Theme.of(context).textTheme.titleLarge,
@@ -176,13 +162,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisSpacing: 12,
                           mainAxisExtent: 320,
                         ),
-                        itemCount: songs.length > 9 ? 9 : songs.length,
+                        itemCount: _quickPicksSongs.length > 9 ? 9 : _quickPicksSongs.length,
                         itemBuilder: (context, index) {
-                          final song = songs[index];
+                          final song = _quickPicksSongs[index];
                           return GestureDetector(
                             onTap: () async {
+                              final currentMediaItem = _audioHandler.mediaItem.value;
+                              if (currentMediaItem != null && 
+                                  currentMediaItem.id == _quickPicksSongs[index].id.toString()) {
+                                // Already playing, just open player
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const PlayerScreen(),
+                                  ),
+                                );
+                                return;
+                              }
+
                               await _audioHandler.playSongs(
-                                songs,
+                                _quickPicksSongs,
                                 index,
                               );
                               if (!mounted) return;
@@ -207,6 +206,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     artworkWidth: 60,
                                     artworkHeight: 60,
                                     artworkFit: BoxFit.cover,
+                                    artworkQuality: FilterQuality.low,
+                                    size: 150,
                                     nullArtworkWidget: Container(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(8.0),
@@ -243,7 +244,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ],
                                     ),
                                   ),
-                                  SongOptionsMenu(song: song),
+                                  SongOptionsMenu(
+                                    song: song,
+                                    onDeleted: () {
+                                      _audioHandler.clearCache();
+                                      _checkAndRequestPermissions();
+                                    },
+                                  ),
                                 ],
                               ),
                             ),
@@ -291,6 +298,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           final song = _recentlyPlayedSongs[index];
                           return GestureDetector(
                             onTap: () async {
+                              final currentMediaItem = _audioHandler.mediaItem.value;
+                              if (currentMediaItem != null && 
+                                  currentMediaItem.id == _recentlyPlayedSongs[index].id.toString()) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const PlayerScreen(),
+                                  ),
+                                );
+                                return;
+                              }
+
                               await _audioHandler.playSongs(
                                 _recentlyPlayedSongs,
                                 index,
@@ -321,6 +340,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     artworkWidth: 130,
                                     artworkHeight: 130,
                                     artworkFit: BoxFit.cover,
+                                    artworkQuality: FilterQuality.low,
+                                    size: 250, // Balanced size for bigger tiles
                                     nullArtworkWidget: Container(
                                       decoration: BoxDecoration(
                                         borderRadius:
@@ -402,6 +423,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                 final song = _favoriteSongs[index];
                                 return GestureDetector(
                                   onTap: () async {
+                                    final currentMediaItem = _audioHandler.mediaItem.value;
+                                    if (currentMediaItem != null && 
+                                        currentMediaItem.id == _favoriteSongs[index].id.toString()) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const PlayerScreen(),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
                                     await _audioHandler.playSongs(
                                       _favoriteSongs,
                                       index,
@@ -429,6 +462,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           artworkWidth: 130,
                                           artworkHeight: 130,
                                           artworkFit: BoxFit.cover,
+                                          artworkQuality: FilterQuality.low,
+                                          size: 250,
                                           nullArtworkWidget: Container(
                                             decoration: BoxDecoration(
                                               borderRadius: BorderRadius.circular(
@@ -493,6 +528,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           final song = _lastAddedSongs[index];
                           return GestureDetector(
                             onTap: () async {
+                              final currentMediaItem = _audioHandler.mediaItem.value;
+                              if (currentMediaItem != null && 
+                                  currentMediaItem.id == _lastAddedSongs[index].id.toString()) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const PlayerScreen(),
+                                  ),
+                                );
+                                return;
+                              }
+
                               await _audioHandler.playSongs(
                                 _lastAddedSongs,
                                 index,
@@ -519,6 +566,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     artworkWidth: 60,
                                     artworkHeight: 60,
                                     artworkFit: BoxFit.cover,
+                                    artworkQuality: FilterQuality.low,
+                                    size: 150,
                                     nullArtworkWidget: Container(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(8.0),
@@ -555,7 +604,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ],
                                     ),
                                   ),
-                                  SongOptionsMenu(song: song),
+                                  SongOptionsMenu(
+                                    song: song,
+                                    onDeleted: () {
+                                      _audioHandler.clearCache();
+                                      _checkAndRequestPermissions();
+                                    },
+                                  ),
                                 ],
                               ),
                             ),

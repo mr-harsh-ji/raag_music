@@ -14,11 +14,17 @@ import 'screens/bottom_navigation_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set memory cache limits to prevent OOM
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024; // 50 MB
+
   await Permission.notification.request();
 
   final languageProvider = LanguageProvider();
   GetIt.instance.registerSingleton<LanguageProvider>(languageProvider);
-  GetIt.instance.registerSingleton<AudioHandler>(await initAudioService());
+  
+  final audioHandler = await initAudioService();
+  GetIt.instance.registerSingleton<AudioHandler>(audioHandler);
 
   runApp(
     MultiProvider(

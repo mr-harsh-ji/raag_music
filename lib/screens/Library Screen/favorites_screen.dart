@@ -124,7 +124,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    trailing: SongOptionsMenu(song: song),
+                    trailing: SongOptionsMenu(
+                      song: song,
+                      onDeleted: () {
+                        _audioHandler.clearCache();
+                        _loadFavoriteSongs();
+                      },
+                    ),
                     onTap: () async {
                       await _audioHandler.playSongs(_favoriteSongs, index);
                       if (!mounted) return;

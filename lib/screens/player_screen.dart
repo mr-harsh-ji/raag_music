@@ -35,6 +35,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _isFavorited = false;
   bool _gestureVolume = true;
 
+  StreamSubscription? _mediaItemSubscription;
+  StreamSubscription? _sequenceStateSubscription;
+  bool _isSyncingPageController = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,23 +48,37 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
     _loadSettings();
 
-    _audioHandler.mediaItem.listen((mediaItem) {
-      if (mediaItem != null) {
+    _mediaItemSubscription = _audioHandler.mediaItem.listen((mediaItem) async {
+      if (mediaItem != null && mounted) {
         _checkIfFavorite(int.parse(mediaItem.id));
+
+        // Sync PageView when song changes (filtered by AudioHandler's flag)
+        final queue = _audioHandler.queue.value;
+        final index = queue.indexWhere((item) => item.id == mediaItem.id);
+        if (index != -1 &&
+            _pageController.hasClients &&
+            !_pageController.position.isScrollingNotifier.value &&
+            index != _pageController.page?.round()) {
+          
+          _isSyncingPageController = true;
+          final pageDiff = (index - (_pageController.page?.round() ?? 0)).abs();
+          
+          if (pageDiff > 1) {
+            _pageController.jumpToPage(index);
+          } else {
+            await _pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.ease,
+            );
+          }
+          _isSyncingPageController = false;
+        }
       }
     });
 
-    _audioPlayer.sequenceStateStream.listen((sequenceState) {
-      if (sequenceState == null) return;
-      final currentIndex = sequenceState.currentIndex;
-      if (_pageController.hasClients &&
-          currentIndex != _pageController.page?.round()) {
-        _pageController.animateToPage(
-          currentIndex,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.ease,
-        );
-      }
+    _sequenceStateSubscription = _audioPlayer.sequenceStateStream.listen((sequenceState) {
+      // Just listen for queue changes if needed, but the sync is now in mediaItem listener
     });
   }
 
@@ -73,6 +91,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    _mediaItemSubscription?.cancel();
+    _sequenceStateSubscription?.cancel();
     _pageController.dispose();
     _volumeHideTimer?.cancel();
     super.dispose();
@@ -274,23 +294,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget build(BuildContext context) {
     var scrSize = MediaQuery.of(context).size;
 
-    return StreamBuilder<MediaItem?>(
-      stream: _audioHandler.mediaItem,
-      builder: (context, snapshot) {
-        final mediaItem = snapshot.data;
-
-        return SafeArea(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF282828), Color(0xFF000000)],
-              ),
-            ),
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              body: Column(
+    return SafeArea(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF282828), Color(0xFF000000)],
+          ),
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: StreamBuilder<MediaItem?>(
+            stream: _audioHandler.mediaItem,
+            initialData: _audioHandler.mediaItem.value,
+            builder: (context, snapshot) {
+              final mediaItem = snapshot.data;
+              return Column(
                 children: [
                   Row(
                     children: [
@@ -339,19 +359,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             icon: const Icon(Icons.lyrics, color: Colors.white),
                           ),
                           if (mediaItem != null)
-                            SongOptionsMenu(song: SongModel({
-                              '_id': int.parse(mediaItem.id),
-                              'title': mediaItem.title,
-                              'artist': mediaItem.artist,
-                              'album': mediaItem.album,
-                              'duration': mediaItem.duration?.inMilliseconds,
-                              '_uri': mediaItem.extras!['url'],
-                            })),
+                            SongOptionsMenu(
+                              song: SongModel({
+                                '_id': int.parse(mediaItem.id),
+                                'title': mediaItem.title,
+                                'artist': mediaItem.artist,
+                                'album': mediaItem.album,
+                                'duration': mediaItem.duration?.inMilliseconds,
+                                '_uri': mediaItem.extras!['url'],
+                              }),
+                              onDeleted: () {
+                                _audioHandler.clearCache();
+                                _audioHandler.skipToNext();
+                                Navigator.pop(context);
+                              },
+                            ),
                         ],
                       ),
                     ],
                   ),
-                  SizedBox(height: scrSize.height * 0.02),
+                  SizedBox(height: scrSize.height * 0.01),
                   _gestureVolume
                       ? RawGestureDetector(
                           gestures: {
@@ -374,80 +401,80 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         )
                       : buildPlayerControls(scrSize, mediaItem),
                   Expanded(
-                    child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          SizedBox(height: scrSize.height * 0.05),
-                          Container(
-                            height: 40,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: _buildMarquee(
-                              mediaItem?.title ?? "loading".tr,
-                              const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 35,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            height: 25,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: _buildMarquee(
-                              mediaItem?.artist ?? "unknown_artist".tr,
-                              const TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20.0,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                IconButton(
-                                  icon: Icon(
-                                    _isFavorited
-                                        ? Icons.favorite
-                                        : Icons.favorite_border,
+                          Column(
+                            children: [
+                              Container(
+                                height: 45,
+                                child: _buildMarquee(
+                                  mediaItem?.title ?? "loading".tr,
+                                  const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 30,
                                   ),
-                                  color: Theme.of(context).colorScheme.secondary,
-                                  onPressed: _toggleFavorite,
                                 ),
-                                StreamBuilder<double>(
-                                  stream: _audioPlayer.speedStream,
-                                  builder: (context, snapshot) => TextButton(
-                                    onPressed: () =>
-                                        _showSpeedSelector(context),
-                                    child: Text(
-                                      '${snapshot.data ?? 1.0}x',
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              ),
+                              Container(
+                                height: 25,
+                                child: _buildMarquee(
+                                  mediaItem?.artist ?? "unknown_artist".tr,
+                                  const TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  _isFavorited
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                ),
+                                color: Theme.of(context).colorScheme.secondary,
+                                onPressed: _toggleFavorite,
+                              ),
+                              StreamBuilder<double>(
+                                stream: _audioPlayer.speedStream,
+                                builder: (context, snapshot) => TextButton(
+                                  onPressed: () =>
+                                      _showSpeedSelector(context),
+                                  child: Text(
+                                    '${snapshot.data ?? 1.0}x',
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                           StreamBuilder<Duration>(
                             stream: _audioPlayer.positionStream,
                             builder: (context, snapshot) {
                               final position = snapshot.data ?? Duration.zero;
                               final duration =
-                                  mediaItem?.duration ?? Duration.zero;
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20.0,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Slider(
+                                  _audioPlayer.duration ?? mediaItem?.duration ?? Duration.zero;
+                              return Column(
+                                children: [
+                                  SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                      trackHeight: 4,
+                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                    ),
+                                    child: Slider(
                                       value: duration.inMilliseconds > 0
                                           ? position.inMilliseconds
                                               .clamp(0, duration.inMilliseconds)
@@ -460,154 +487,131 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       },
                                       activeColor:
                                           Theme.of(context).colorScheme.secondary,
-                                      inactiveColor: Colors.grey,
+                                      inactiveColor: Colors.white24,
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20.0,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            _formatDuration(position),
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _formatDuration(position),
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 12,
                                           ),
-                                          Text(
-                                            _formatDuration(duration),
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(30.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                StreamBuilder<bool>(
-                                  stream: _audioPlayer.shuffleModeEnabledStream,
-                                  builder: (context, snapshot) => IconButton(
-                                    icon: const Icon(Icons.shuffle),
-                                    color: snapshot.data ?? false
-                                        ? Theme.of(context).colorScheme.secondary
-                                        : const Color(0xff765204),
-                                    onPressed: () async {
-                                      final enable = !(snapshot.data ?? false);
-                                      await _audioPlayer
-                                          .setShuffleModeEnabled(enable);
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            "Shuffle ${enable ? "on".tr : "off".tr}",
-                                          ),
-                                          duration: const Duration(seconds: 1),
                                         ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.skip_previous_rounded),
-                                  color: Theme.of(context).colorScheme.secondary,
-                                  iconSize: 40,
-                                  onPressed: _audioHandler.skipToPrevious,
-                                ),
-                                StreamBuilder<PlaybackState>(
-                                  stream: _audioHandler.playbackState,
-                                  builder: (context, snapshot) {
-                                    final isPlaying =
-                                        snapshot.data?.playing ?? false;
-                                    return IconButton(
-                                      icon: Icon(
-                                        isPlaying
-                                            ? Icons.pause_circle_filled_rounded
-                                            : Icons.play_circle_fill_rounded,
-                                      ),
-                                      color: Theme.of(context).colorScheme.secondary,
-                                      iconSize: 60,
-                                      onPressed: _playPause,
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.skip_next_rounded),
-                                  color: Theme.of(context).colorScheme.secondary,
-                                  iconSize: 40,
-                                  onPressed: _audioHandler.skipToNext,
-                                ),
-                                StreamBuilder<LoopMode>(
-                                  stream: _audioPlayer.loopModeStream,
-                                  builder: (context, snapshot) => IconButton(
-                                    icon: Icon(
-                                      snapshot.data == LoopMode.one
-                                          ? Icons.repeat_one
-                                          : Icons.repeat,
-                                    ),
-                                    color: snapshot.data != LoopMode.off
-                                        ? Theme.of(context).colorScheme.secondary
-                                        : const Color(0xff765204),
-                                    onPressed: () {
-                                      final newMode =
-                                          snapshot.data == LoopMode.off
-                                              ? LoopMode.all
-                                              : LoopMode.off;
-                                      _audioPlayer.setLoopMode(newMode);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            "Repeat ${newMode != LoopMode.off ? "on".tr : "off".tr}".tr,
+                                        Text(
+                                          _formatDuration(duration),
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 12,
                                           ),
-                                          duration: const Duration(seconds: 1),
                                         ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: scrSize.height * 0.035),
-                          GestureDetector(
-                            onTap: () => _showUpNextQueue(context),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              height: scrSize.height * 0.08,
-                              width: scrSize.width * 1,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    CupertinoIcons.chevron_up,
-                                    color: Colors.white,
-                                  ),
-                                  Text(
-                                    "up_next".tr,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 19,
+                                      ],
                                     ),
                                   ),
                                 ],
+                              );
+                            },
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              StreamBuilder<bool>(
+                                stream: _audioPlayer.shuffleModeEnabledStream,
+                                builder: (context, snapshot) => IconButton(
+                                  icon: const Icon(Icons.shuffle),
+                                  color: snapshot.data ?? false
+                                      ? Theme.of(context).colorScheme.secondary
+                                      : Colors.white54,
+                                  onPressed: () async {
+                                    final enable = !(snapshot.data ?? false);
+                                    await _audioPlayer
+                                        .setShuffleModeEnabled(enable);
+                                  },
+                                ),
                               ),
+                              IconButton(
+                                icon: const Icon(Icons.skip_previous_rounded),
+                                color: Colors.white,
+                                iconSize: 45,
+                                onPressed: _audioHandler.skipToPrevious,
+                              ),
+                              StreamBuilder<PlaybackState>(
+                                stream: _audioHandler.playbackState,
+                                builder: (context, snapshot) {
+                                  final isPlaying =
+                                      snapshot.data?.playing ?? false;
+                                  return IconButton(
+                                    icon: Icon(
+                                      isPlaying
+                                          ? Icons.pause_circle_filled_rounded
+                                          : Icons.play_circle_fill_rounded,
+                                    ),
+                                    color: Theme.of(context).colorScheme.secondary,
+                                    iconSize: 75,
+                                    onPressed: _playPause,
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.skip_next_rounded),
+                                color: Colors.white,
+                                iconSize: 45,
+                                onPressed: _audioHandler.skipToNext,
+                              ),
+                              StreamBuilder<LoopMode>(
+                                stream: _audioPlayer.loopModeStream,
+                                builder: (context, snapshot) {
+                                  final loopMode = snapshot.data ?? LoopMode.off;
+                                  IconData iconData = Icons.repeat;
+                                  Color color = Colors.white54;
+
+                                  if (loopMode == LoopMode.one) {
+                                    iconData = Icons.repeat_one;
+                                    color = Theme.of(context).colorScheme.secondary;
+                                  } else if (loopMode == LoopMode.all) {
+                                    iconData = Icons.repeat;
+                                    color = Theme.of(context).colorScheme.secondary;
+                                  }
+
+                                  return IconButton(
+                                    icon: Icon(iconData),
+                                    color: color,
+                                    onPressed: () {
+                                      LoopMode nextMode;
+                                      if (loopMode == LoopMode.off) {
+                                        nextMode = LoopMode.all;
+                                      } else if (loopMode == LoopMode.all) {
+                                        nextMode = LoopMode.one;
+                                      } else {
+                                        nextMode = LoopMode.off;
+                                      }
+                                      _audioPlayer.setLoopMode(nextMode);
+                                    },
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: () => _showUpNextQueue(context),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(CupertinoIcons.chevron_up, color: Colors.white54, size: 20),
+                                Text(
+                                  "up_next".tr,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -615,11 +619,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     ),
                   ),
                 ],
-              ),
-            ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -640,7 +644,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 controller: _pageController,
                 itemCount: queue.length,
                 onPageChanged: (index) {
-                  _audioHandler.skipToQueueItem(index);
+                  if (!_isSyncingPageController && index != _audioPlayer.currentIndex) {
+                    _audioHandler.skipToQueueItem(index);
+                  }
                 },
                 itemBuilder: (context, index) {
                   final item = queue[index];
@@ -656,8 +662,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         artworkWidth: scrSize.width * 0.85,
                         artworkHeight: scrSize.height * 0.4,
                         artworkFit: BoxFit.cover,
-                        artworkQuality: FilterQuality.high,
-                        size: 1000,
+                        artworkQuality: FilterQuality.low,
+                        size: 500,
                         keepOldArtwork: true,
                         nullArtworkWidget: Container(
                           decoration: BoxDecoration(

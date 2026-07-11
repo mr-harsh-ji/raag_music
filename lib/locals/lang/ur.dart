@@ -84,4 +84,5 @@ const Map<String, String> ur = {
   "toggle_favorite": "پسندیدہ تبدیل کریں",
   "view_album": "البم دیکھیں",
   "last_added": "حال ہی میں شامل کیے گئے",
+  "no_up_next_songs": "اگلا کوئی گانا موجود نہیں",
 };

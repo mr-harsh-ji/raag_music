@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:raag_music/services/blacklist_service.dart';
 import 'package:raag_music/services/recently_played_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,7 +24,11 @@ class MyAudioHandler extends BaseAudioHandler {
   final _player = AudioPlayer();
   final _playlist = ConcatenatingAudioSource(children: []);
   final _recentlyPlayedService = RecentlyPlayedService();
+  final _blacklistService = BlacklistService();
   final _audioQuery = OnAudioQuery();
+  bool _isChangingPlaylist = false;
+  List<SongModel> _cachedSongs = [];
+  bool _isScanning = false;
 
   MyAudioHandler() {
     _loadEmptyPlaylist();
@@ -31,6 +36,44 @@ class MyAudioHandler extends BaseAudioHandler {
     _listenForCurrentSongIndexChanges();
     _listenForSequenceStateChanges();
     _listenForPlayerCompletion();
+  }
+
+  Future<List<SongModel>> fetchAllSongs() async {
+    if (_cachedSongs.isNotEmpty) return _cachedSongs;
+    if (_isScanning) {
+      while (_isScanning) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      return _cachedSongs;
+    }
+
+    _isScanning = true;
+    try {
+      final hasPermission = await _audioQuery.permissionsStatus();
+      if (!hasPermission) {
+        _isScanning = false;
+        return [];
+      }
+
+      final allSongs = await _audioQuery.querySongs(
+        sortType: SongSortType.DATE_ADDED,
+        orderType: OrderType.DESC_OR_GREATER,
+        uriType: UriType.EXTERNAL,
+        ignoreCase: true,
+      );
+
+      final blacklistedIds = await _blacklistService.getBlacklistedIds();
+      _cachedSongs = allSongs.where((song) => !blacklistedIds.contains(song.id)).toList();
+    } catch (e) {
+      print("Scan Error: $e");
+    } finally {
+      _isScanning = false;
+    }
+    return _cachedSongs;
+  }
+
+  void clearCache() {
+    _cachedSongs = [];
   }
 
   Future<void> _loadEmptyPlaylist() async {
@@ -43,42 +86,54 @@ class MyAudioHandler extends BaseAudioHandler {
 
   void _notifyAudioHandlerAboutPlaybackState() {
     _player.playbackEventStream.listen((PlaybackEvent event) {
-      final playing = _player.playing;
-      playbackState.add(playbackState.value.copyWith(
-        controls: [
-          MediaControl.skipToPrevious,
-          if (playing) MediaControl.pause else MediaControl.play,
-          MediaControl.stop,
-          MediaControl.skipToNext,
-        ],
-        systemActions: const {
-          MediaAction.seek,
-        },
-        androidCompactActionIndices: const [0, 1, 3],
-        processingState: const {
-          ProcessingState.idle: AudioProcessingState.idle,
-          ProcessingState.loading: AudioProcessingState.loading,
-          ProcessingState.buffering: AudioProcessingState.buffering,
-          ProcessingState.ready: AudioProcessingState.ready,
-          ProcessingState.completed: AudioProcessingState.completed,
-        }[_player.processingState]!,
-        playing: playing,
-        updatePosition: event.updatePosition,
-        bufferedPosition: event.bufferedPosition,
-        speed: _player.speed,
-        queueIndex: event.currentIndex,
-      ));
+      _updatePlaybackState();
     });
+    
+    _player.loopModeStream.listen((_) => _updatePlaybackState());
+    _player.shuffleModeEnabledStream.listen((_) => _updatePlaybackState());
+  }
+
+  void _updatePlaybackState() {
+    final playing = _player.playing;
+    playbackState.add(playbackState.value.copyWith(
+      controls: [
+        MediaControl.skipToPrevious,
+        if (playing) MediaControl.pause else MediaControl.play,
+        MediaControl.stop,
+        MediaControl.skipToNext,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.setRepeatMode,
+        MediaAction.setShuffleMode,
+      },
+      androidCompactActionIndices: const [0, 1, 3],
+      processingState: const {
+        ProcessingState.idle: AudioProcessingState.idle,
+        ProcessingState.loading: AudioProcessingState.loading,
+        ProcessingState.buffering: AudioProcessingState.buffering,
+        ProcessingState.ready: AudioProcessingState.ready,
+        ProcessingState.completed: AudioProcessingState.completed,
+      }[_player.processingState] ?? AudioProcessingState.idle,
+      playing: playing,
+      updatePosition: _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+      queueIndex: _player.currentIndex,
+      repeatMode: const {
+        LoopMode.off: AudioServiceRepeatMode.none,
+        LoopMode.one: AudioServiceRepeatMode.one,
+        LoopMode.all: AudioServiceRepeatMode.all,
+      }[_player.loopMode]!,
+      shuffleMode: _player.shuffleModeEnabled
+          ? AudioServiceShuffleMode.all
+          : AudioServiceShuffleMode.none,
+    ));
   }
 
   void _listenForCurrentSongIndexChanges() {
     _player.currentIndexStream.listen((index) {
-      final playlist = queue.value;
-      if (index == null || playlist.isEmpty || index >= playlist.length) {
-        return;
-      }
-      mediaItem.add(playlist[index]);
-      _recentlyPlayedService.addSong(int.parse(playlist[index].id));
+      _updateMediaItem();
     });
   }
 
@@ -91,7 +146,23 @@ class MyAudioHandler extends BaseAudioHandler {
       }
       final newQueue = sequence.map((s) => s.tag as MediaItem).toList();
       queue.add(newQueue);
+      _updateMediaItem();
     });
+  }
+
+  void _updateMediaItem() {
+    if (_isChangingPlaylist) return;
+    
+    final index = _player.currentIndex;
+    final playlist = queue.value;
+    if (index == null || playlist.isEmpty || index >= playlist.length) {
+      return;
+    }
+    final currentItem = playlist[index];
+    if (mediaItem.value?.id != currentItem.id) {
+      mediaItem.add(currentItem);
+      _recentlyPlayedService.addSong(int.parse(currentItem.id));
+    }
   }
 
   void _listenForPlayerCompletion() {
@@ -166,6 +237,31 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   @override
+  Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {
+    switch (repeatMode) {
+      case AudioServiceRepeatMode.none:
+        await _player.setLoopMode(LoopMode.off);
+        break;
+      case AudioServiceRepeatMode.one:
+        await _player.setLoopMode(LoopMode.one);
+        break;
+      case AudioServiceRepeatMode.all:
+      case AudioServiceRepeatMode.group:
+        await _player.setLoopMode(LoopMode.all);
+        break;
+    }
+  }
+
+  @override
+  Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
+    if (shuffleMode == AudioServiceShuffleMode.none) {
+      await _player.setShuffleModeEnabled(false);
+    } else {
+      await _player.setShuffleModeEnabled(true);
+    }
+  }
+
+  @override
   Future<void> play() => _player.play();
 
   @override
@@ -181,14 +277,10 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> skipToPrevious() => _player.seekToPrevious();
 
   @override
+  @override
   Future<void> skipToQueueItem(int index) async {
-    final completer = Completer<void>();
-    mediaItem.first.then((_) => completer.complete());
-
     await _player.seek(Duration.zero, index: index);
-    play();
-
-    await completer.future;
+    await play();
   }
 
   @override
@@ -205,19 +297,23 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> playSongs(List<SongModel> songs, int initialIndex) async {
     if (songs.isEmpty) return;
 
-    final completer = Completer<void>();
-    mediaItem.first.then((_) => completer.complete());
+    _isChangingPlaylist = true;
+    final mediaItems = songs.map(_songToMediaItem).toList();
+    queue.add(mediaItems);
 
     await _playlist.clear();
-    
-    final mediaItems = songs.map(_songToMediaItem).toList();
+    await _playlist.addAll(
+      mediaItems.map(_createAudioSource).toList(),
+    );
 
-    await _playlist.addAll(mediaItems.map(_createAudioSource).toList());
-    
-    await _player.setAudioSource(_playlist, initialIndex: initialIndex);
-    play();
+    await _player.setAudioSource(
+      _playlist,
+      initialIndex: initialIndex,
+    );
 
-    await completer.future;
+    _isChangingPlaylist = false;
+    _updateMediaItem();
+    await play();
   }
 
   Future<void> scan() async {

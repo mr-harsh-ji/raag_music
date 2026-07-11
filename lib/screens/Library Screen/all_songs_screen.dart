@@ -138,6 +138,8 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
               type: ArtworkType.AUDIO,
               artworkBorder:
               BorderRadius.circular(4),
+              artworkQuality: FilterQuality.low,
+              size: 150,
               nullArtworkWidget: Icon(
                 Icons.music_note,
                 color: Theme.of(context)
@@ -169,7 +171,22 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
                 });
               },
             )
-                : SongOptionsMenu(song: song),
+                : SongOptionsMenu(
+                    song: song,
+                    onDeleted: () {
+                      _audioHandler.clearCache();
+                      if (widget.isFavorites) {
+                        _loadFavoriteSongs();
+                      } else if (widget.songs != null) {
+                        // If it was a passed list, we might need to filter it locally
+                        setState(() {
+                          _songs.removeAt(index);
+                        });
+                      } else {
+                        _loadAllSongs();
+                      }
+                    },
+                  ),
             onTap: () async {
               if (widget.isSelectionMode) {
                 setState(() {
@@ -180,6 +197,19 @@ class _AllSongsScreenState extends State<AllSongsScreen> {
                       .add(song.id);
                 });
               } else {
+                final currentMediaItem = _audioHandler.mediaItem.value;
+                if (currentMediaItem != null && 
+                    currentMediaItem.id == _songs[index].id.toString()) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                      const PlayerScreen(),
+                    ),
+                  );
+                  return;
+                }
+
                 await _audioHandler.playSongs(
                     _songs, index);
                 if (!mounted) return;
